@@ -1,7 +1,6 @@
 #include <array>
 #include <cstdlib>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 #include "arcball_camera.h"
 #include <glm/ext.hpp>
@@ -10,8 +9,7 @@
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 #include <emscripten/html5_webgpu.h>
-// TODO: Maybe change to use the plain C API?
-#include <webgpu/webgpu_cpp.h>
+#include "webgpu_cpp.h"
 
 const std::string WGSL_SHADER = R"(
 alias float4 = vec4<f32>;
