@@ -13,11 +13,10 @@ import wasm from "./cpp/wgpu_app.wasm";
     let adapter = await navigator.gpu.requestAdapter();
     let device = await adapter.requestDevice();
 
-    // We set no initial run here and call main ourselves because something
+    // We set -sINVOKE_RUN=0 when building and call main ourselves because something
     // within the promise -> call directly chain was gobbling exceptions
     // making it hard to debug
     let cpp = await runCpp({
-        noInitialRun: true,
         preinitializedWebGPUDevice: device,
         // We bundle the wasm using webpack so return the bundled file name
         locateFile: function (_f: string)

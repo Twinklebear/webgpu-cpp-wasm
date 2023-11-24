@@ -88,6 +88,8 @@ int main(int argc, const char **argv)
     app_state->device.SetUncapturedErrorCallback(
         [](WGPUErrorType type, const char *msg, void *data) {
             std::cout << "WebGPU Error: " << msg << "\n" << std::flush;
+            emscripten_cancel_main_loop();
+            emscripten_force_exit(1);
             std::exit(1);
         },
         nullptr);
