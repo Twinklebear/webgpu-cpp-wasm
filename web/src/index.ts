@@ -1,11 +1,29 @@
 import runCpp from "./cpp/wgpu_app";
 import wasm from "./cpp/wgpu_app.wasm";
 
+function sharedArrayBufferSupport() {
+    try {
+        var s = new SharedArrayBuffer(1024);
+        if (s === undefined) {
+            return false;
+        }
+    } catch (e) {
+        return false;
+    }
+    return true;
+}
+
 (async () =>
 {
     if (navigator.gpu === undefined) {
         document.getElementById("webgpu-canvas").setAttribute("style", "display:none;");
         document.getElementById("no-webgpu").setAttribute("style", "display:block;");
+        return;
+    }
+
+    if (!sharedArrayBufferSupport()) {
+        document.getElementById("webgpu-canvas").setAttribute("style", "display:none;");
+        document.getElementById("no-shared-array-buffer").setAttribute("style", "display:block;");
         return;
     }
 

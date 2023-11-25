@@ -6,6 +6,18 @@ module.exports = {
     entry: "./src/index.ts",
     mode: "development",
     devtool: "inline-source-map",
+    devServer: {
+        headers: [
+            {
+                "key": "Cross-Origin-Embedder-Policy",
+                "value": "require-corp"
+            },
+            {
+                "key": "Cross-Origin-Opener-Policy",
+                "value": "same-origin"
+            }
+        ]
+    },
     output: {
         filename: "main.js",
         path: path.resolve(__dirname, "dist"),
@@ -57,7 +69,8 @@ module.exports = {
                 to(f) {
                     const regex = /.*\/web\/dbg\//
                     return f.absoluteFilename.replace(regex, "src/");
-                }
+                },
+                noErrorOnMissing: true
             },
         ]
     })],
