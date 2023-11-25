@@ -46,11 +46,6 @@ module.exports = {
     },
     resolve: {
         extensions: [".tsx", ".ts", ".js"],
-        fallback: {
-            "path": false,
-            "fs": false,
-            "crypto": false,
-        }
     },
     plugins: [new HtmlWebpackPlugin({
         template: "./index.html",

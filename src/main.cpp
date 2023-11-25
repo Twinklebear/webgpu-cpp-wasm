@@ -64,14 +64,16 @@ struct AppState {
     glm::vec2 prev_mouse = glm::vec2(-2.f);
 };
 
-int win_width = 640;
-int win_height = 480;
+int win_width = 1280;
+int win_height = 720;
 
 glm::vec2 transform_mouse(glm::vec2 in)
 {
     return glm::vec2(in.x * 2.f / win_width - 1.f, 1.f - 2.f * in.y / win_height);
 }
 
+int mouse_move_callback(int type, const EmscriptenMouseEvent *event, void *_app_state);
+int mouse_wheel_callback(int type, const EmscriptenWheelEvent *event, void *_app_state);
 void loop_iteration(void *_app_state);
 
 int main(int argc, const char **argv)
@@ -262,6 +264,9 @@ int main(int argc, const char **argv)
         glm::radians(50.f), static_cast<float>(win_width) / win_height, 0.1f, 100.f);
     app_state->camera = ArcballCamera(glm::vec3(0, 0, -2.5), glm::vec3(0), glm::vec3(0, 1, 0));
 
+    emscripten_set_mousemove_callback("#webgpu-canvas", app_state, true, mouse_move_callback);
+    emscripten_set_wheel_callback("#webgpu-canvas", app_state, true, mouse_wheel_callback);
+
     emscripten_set_main_loop_arg(loop_iteration, app_state, -1, 0);
     return 0;
 }
@@ -298,9 +303,6 @@ int mouse_wheel_callback(int type, const EmscriptenWheelEvent *event, void *_app
 void loop_iteration(void *_app_state)
 {
     AppState *app_state = reinterpret_cast<AppState *>(_app_state);
-    emscripten_set_mousemove_callback("#webgpu-canvas", app_state, true, mouse_move_callback);
-    emscripten_set_wheel_callback("#webgpu-canvas", app_state, true, mouse_wheel_callback);
-
     wgpu::Buffer upload_buf;
     if (app_state->camera_changed) {
         wgpu::BufferDescriptor upload_buffer_desc;

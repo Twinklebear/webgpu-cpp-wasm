@@ -2,7 +2,7 @@
     "name": "webgpu-cpp-frontend",
     "version": "1.0.0",
     "description": "WebGPU C++ Frontend app",
-    "main": "index.js",
+    "main": "main.js",
     "scripts": {
         "build": "webpack",
         "serve": "webpack server",

@@ -8,8 +8,11 @@ target_link_libraries(wgpu_app PRIVATE glm)
 target_link_options(
   wgpu_app
   PRIVATE
+  "SHELL: -sENVIRONMENT='web,worker'"
   -sUSE_WEBGPU=1
   -sMODULARIZE=1
+  -sEXPORT_ES6
+  -sEXPORT_NAME=CPPApp
   -sALLOW_MEMORY_GROWTH=1
   -sASSERTIONS=1
   -sEXIT_RUNTIME=1
@@ -29,6 +32,8 @@ add_custom_command(
   OUTPUT ${WEB_OUT_DIR}/wgpu_app.js ${WEB_OUT_DIR}/wgpu_app.wasm
          $<$<CONFIG:DEBUG>:${WEB_OUT_DIR}/wgpu_app.wasm.map>
   COMMAND cmake -E make_directory ${WEB_OUT_DIR}
+  COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.js
+          ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.js
   COMMAND
     cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.js
     ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.wasm
