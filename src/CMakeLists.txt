@@ -20,10 +20,15 @@ target_link_options(
   # Debug build flags
   $<$<CONFIG:DEBUG>:-fwasm-exceptions>
   $<$<CONFIG:DEBUG>:-g>
-  $<$<CONFIG:DEBUG>:-gsource-map>
   $<$<CONFIG:DEBUG>:-O0>
   # Exported Emscripten runtime methods
   "SHELL:-sEXPORTED_RUNTIME_METHODS='[\"callMain\"]'")
+
+option(ENABLE_SOURCE_MAP
+       "Enable source map for debug builds (breaks Chrome DWARF debugging)" OFF)
+if(ENABLE_SOURCE_MAP)
+  target_link_options(wgpu_app PRIVATE $<$<CONFIG:DEBUG>:-gsource-map>)
+endif()
 
 set(WEB_OUT_DIR ${PROJECT_SOURCE_DIR}/web/src/cpp)
 
