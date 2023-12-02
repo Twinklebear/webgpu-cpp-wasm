@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <vector>
 #include "arcball_camera.h"
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
@@ -295,7 +296,6 @@ int mouse_move_callback(int type, const EmscriptenMouseEvent *event, void *_app_
 int mouse_wheel_callback(int type, const EmscriptenWheelEvent *event, void *_app_state)
 {
     AppState *app_state = reinterpret_cast<AppState *>(_app_state);
-    std::cout << "deltay: " << event->deltaY <<"\n";
 
     app_state->camera.zoom(-event->deltaY * 0.005f);
     app_state->camera_changed = true;

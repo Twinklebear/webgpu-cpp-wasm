@@ -1,0 +1,60 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "."
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/cmake-build"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "npm_install",
+            "type": "shell",
+            "command": "npm i",
+            "isBuildCommand": true,
+            "options": {
+                "cwd": "${workspaceFolder}/web"
+            }
+        },
+        {
+            "label": "run_app",
+            "type": "shell",
+            "command": "npm run serve",
+            "options": {
+                "cwd": "${workspaceFolder}/web"
+            },
+            "dependsOn": [
+                "npm_install",
+                "build"
+            ],
+            "isBackground": true,
+            "problemMatcher": {
+                "fileLocation": "autodetect",
+                "pattern": [
+                    {
+                        "regexp": ".* (\\w+) in (.*)\\((\\d+),(\\d+)\\)",
+                        "message": 0,
+                        "severity": 1,
+                        "file": 2,
+                        "line": 3,
+                        "column": 4
+                    }
+                ],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*",
+                    "endsPattern": "webpack .* compiled.*"
+                }
+            }
+        }
+    ]
+}
