@@ -45,6 +45,13 @@ if(ENABLE_THREAD_PROFILER)
   target_link_options(wgpu_app PRIVATE --threadprofiler)
 endif()
 
+if(ENABLE_MEMORY_PROFILER
+   OR ENABLE_CPU_PROFILER
+   OR ENABLE_THREAD_PROFILER)
+  target_compile_options(wgpu_app PRIVATE $<$<CONFIG:RELEASE>:--profiling>)
+  target_link_options(wgpu_app PRIVATE $<$<CONFIG:RELEASE>:--profiling>)
+endif()
+
 set(WEB_OUT_DIR ${PROJECT_SOURCE_DIR}/web/src/cpp)
 
 add_custom_command(
