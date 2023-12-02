@@ -30,6 +30,21 @@ if(ENABLE_SOURCE_MAP)
   target_link_options(wgpu_app PRIVATE $<$<CONFIG:DEBUG>:-gsource-map>)
 endif()
 
+option(ENABLE_MEMORY_PROFILER "Enable Emscripten's memory profiler" OFF)
+if(ENABLE_MEMORY_PROFILER)
+  target_link_options(wgpu_app PRIVATE --memoryprofiler)
+endif()
+
+option(ENABLE_CPU_PROFILER "Enable Emscripten's CPU profiler" OFF)
+if(ENABLE_CPU_PROFILER)
+  target_link_options(wgpu_app PRIVATE --cpuprofiler)
+endif()
+
+option(ENABLE_THREAD_PROFILER "Enable Emscripten's thread profiler" OFF)
+if(ENABLE_THREAD_PROFILER)
+  target_link_options(wgpu_app PRIVATE --threadprofiler)
+endif()
+
 set(WEB_OUT_DIR ${PROJECT_SOURCE_DIR}/web/src/cpp)
 
 add_custom_command(
