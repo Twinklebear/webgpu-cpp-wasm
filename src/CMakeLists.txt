@@ -17,6 +17,7 @@ target_link_options(
   -sASSERTIONS=1
   -sEXIT_RUNTIME=1
   -sINVOKE_RUN=0
+  -lwebsocket.js
   # Debug build flags
   $<$<CONFIG:DEBUG>:-fwasm-exceptions>
   $<$<CONFIG:DEBUG>:-g>

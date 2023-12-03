@@ -10,6 +10,7 @@
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 #include <emscripten/html5_webgpu.h>
+#include <emscripten/websocket.h>
 #include "webgpu_cpp.h"
 
 const std::string WGSL_SHADER = R"(
@@ -76,6 +77,24 @@ glm::vec2 transform_mouse(glm::vec2 in)
 int mouse_move_callback(int type, const EmscriptenMouseEvent *event, void *_app_state);
 int mouse_wheel_callback(int type, const EmscriptenWheelEvent *event, void *_app_state);
 void loop_iteration(void *_app_state);
+
+// Callbacks for trying out websockets
+EM_BOOL ws_open_callback(int event_type,
+                         const EmscriptenWebSocketOpenEvent *event __attribute__((nonnull)),
+                         void *userData);
+
+EM_BOOL ws_message_callback(int event_type,
+                            const EmscriptenWebSocketMessageEvent *event
+                            __attribute__((nonnull)),
+                            void *userData);
+
+EM_BOOL ws_error_callback(int event_type,
+                          const EmscriptenWebSocketErrorEvent *event __attribute__((nonnull)),
+                          void *userData);
+
+EM_BOOL ws_close_callback(int event_type,
+                          const EmscriptenWebSocketCloseEvent *event __attribute__((nonnull)),
+                          void *userData);
 
 int main(int argc, const char **argv)
 {
@@ -269,6 +288,25 @@ int main(int argc, const char **argv)
     emscripten_set_wheel_callback("#webgpu-canvas", app_state, true, mouse_wheel_callback);
 
     emscripten_set_main_loop_arg(loop_iteration, app_state, -1, 0);
+
+    // Set up the websocket test
+    EmscriptenWebSocketCreateAttributes ws_attr;
+    emscripten_websocket_init_create_attributes(&ws_attr);
+    // Oatpp test server
+    ws_attr.url = "ws://localhost:8000/ws";
+    // ws_attr.protocols = "binary,base64";
+    //  We're already on the main thread anyways
+    ws_attr.createOnMainThread = false;
+
+    auto socket = emscripten_websocket_new(&ws_attr);
+    if (socket < 0) {
+        std::cerr << "Failed to create websocket\n";
+    }
+
+    emscripten_websocket_set_onopen_callback(socket, nullptr, ws_open_callback);
+    emscripten_websocket_set_onerror_callback(socket, nullptr, ws_error_callback);
+    emscripten_websocket_set_onclose_callback(socket, nullptr, ws_close_callback);
+    emscripten_websocket_set_onmessage_callback(socket, nullptr, ws_message_callback);
     return 0;
 }
 
@@ -351,4 +389,63 @@ void loop_iteration(void *_app_state)
     app_state->queue.Submit(1, &commands);
 
     app_state->camera_changed = false;
+}
+
+EM_BOOL ws_open_callback(int event_type,
+                         const EmscriptenWebSocketOpenEvent *event __attribute__((nonnull)),
+                         void *userData)
+{
+    std::cout << "Open websocket: " << event->socket << "\n";
+    std::cout << "Event type: " << event_type << "\n";
+    uint16_t ready_state = 0;
+    emscripten_websocket_get_ready_state(event->socket, &ready_state);
+    std::cout << "Ready state = " << ready_state << "\n";
+
+    // Now we can send some data
+    emscripten_websocket_send_utf8_text(event->socket, "test message");
+    return 0;
+}
+
+EM_BOOL ws_message_callback(int event_type,
+                            const EmscriptenWebSocketMessageEvent *event
+                            __attribute__((nonnull)),
+                            void *userData)
+{
+    std::cout << "Onmessage callback " << event->socket << " event type: " << event_type
+              << "\n";
+    std::cout << "Received " << event->numBytes << "b of "
+              << (event->isText ? "text" : "binary") << " data\n";
+    if (event->isText) {
+        std::cout << "Text: " << event->data << "\n";
+    } else {
+        std::cout << "Binary message: [";
+        for (int i = 0; i < event->numBytes; ++i) {
+            std::cout << event->data[i] << ",";
+        }
+        std::cout << "]\n";
+    }
+
+    // Note: Emscripten free's the data for us after calling this callback
+    return 0;
+}
+
+EM_BOOL ws_error_callback(int event_type,
+                          const EmscriptenWebSocketErrorEvent *event __attribute__((nonnull)),
+                          void *userData)
+{
+    std::cerr << "Onerror callback: " << event->socket << " event type " << event_type << "\n";
+    // The error reason will be given to us in the close callback
+    return 0;
+}
+
+EM_BOOL ws_close_callback(int event_type,
+                          const EmscriptenWebSocketCloseEvent *event __attribute__((nonnull)),
+                          void *userData)
+{
+    std::cout << "Onclose callback: " << event->socket << " event type " << event_type << "\n";
+    std::cout << "Close reason: " << event->reason << " was clean ? "
+              << (event->wasClean ? "true" : "false") << "\n";
+
+    emscripten_websocket_delete(event->socket);
+    return 0;
 }
