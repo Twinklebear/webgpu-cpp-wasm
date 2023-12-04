@@ -10,7 +10,7 @@ js/liblas_wrapper.js
 glslc.exe
 node_modules
 dist/
-cmake-build/
+cmake-build*/
 web/src/cpp/
 .cache/
 compile_commands.json

@@ -1,5 +1,5 @@
-import CPPApp from "./cpp/wgpu_app.js";
-import wasm from "./cpp/wgpu_app.wasm";
+import WGPUApp from "./cpp/wgpu_app.js";
+//import wasm from "./cpp/wgpu_app.wasm";
 
 function sharedArrayBufferSupport()
 {
@@ -35,21 +35,12 @@ function sharedArrayBufferSupport()
     // We set -sINVOKE_RUN=0 when building and call main ourselves because something
     // within the promise -> call directly chain was gobbling exceptions
     // making it hard to debug
-    let cpp = await CPPApp({
+    let app = await WGPUApp({
         preinitializedWebGPUDevice: device,
-        // We bundle the wasm using webpack so return the bundled file name
-        locateFile: function (f: string)
-        {
-            console.log(`locate ${f}`);
-            if (f === "wgpu_app.wasm") {
-                return wasm;
-            }
-            throw Error(`Unrecognized file ${f}`);
-        }
     });
 
     try {
-        cpp.callMain();
+        app.callMain();
     } catch (e) {
         console.error(e.stack);
     }

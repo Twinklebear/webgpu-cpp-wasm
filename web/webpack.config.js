@@ -3,7 +3,10 @@ const CopyWebpackPlugin = require("copy-webpack-plugin");
 const path = require("path");
 
 module.exports = {
-    entry: "./src/index.ts",
+    entry: {
+        bundle: "./src/index.ts",
+        worker: "./src/cpp/wgpu_app.worker.js",
+    },
     mode: "development",
     devtool: "inline-source-map",
     devServer: {
@@ -19,7 +22,7 @@ module.exports = {
         ]
     },
     output: {
-        filename: "main.js",
+        filename: "[name].js",
         path: path.resolve(__dirname, "dist"),
     },
     module: {
