@@ -19,7 +19,7 @@ module.exports = {
         ]
     },
     output: {
-        filename: "main.js",
+        filename: "[contenthash].js",
         path: path.resolve(__dirname, "dist"),
     },
     module: {
@@ -44,6 +44,18 @@ module.exports = {
             }
         ]
     },
+    ignoreWarnings: [
+        // These warnings are output for the Emscripten generated code, however they
+        // are not issues for us.
+        //
+        // The criticl dependency issue will not be a problem as we do not
+        // set data.urlOrBlob for the worker import, so it will use the constant string
+        // import path for wgpu_app.js
+        /Critical dependency: the request of a dependency is an expression/,
+        // The circular dependency warning is ok, because both files are output by the compiler
+        // and will be changed as a pair or not at all.
+        /Circular dependency between chunks with runtime \(main, src_cpp_wgpu_app_worker_js\)/
+    ],
     resolve: {
         extensions: [".tsx", ".ts", ".js"],
     },
