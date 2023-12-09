@@ -1,4 +1,5 @@
 #include <array>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -76,6 +77,7 @@ glm::vec2 transform_mouse(glm::vec2 in)
 
 int mouse_move_callback(int type, const EmscriptenMouseEvent *event, void *_app_state);
 int mouse_wheel_callback(int type, const EmscriptenWheelEvent *event, void *_app_state);
+
 void loop_iteration(void *_app_state);
 
 int main(int argc, const char **argv)
@@ -309,8 +311,26 @@ int mouse_wheel_callback(int type, const EmscriptenWheelEvent *event, void *_app
 {
     AppState *app_state = reinterpret_cast<AppState *>(_app_state);
 
-    app_state->camera.zoom(-event->deltaY * 0.005f);
-    app_state->camera_changed = true;
+    // Pinch events on the touchpad to zoom have a fractional component, two finger move
+    // together seem to only have integer values
+    // TODO: this likely breaks scroll on a scroll wheel, so we need a way to detect if the
+    // user has a mouse and change the behavior. Need to test on a real mouse
+    float delta_y_int = 0.f;
+    if (std::modf(event->deltaY, &delta_y_int) != 0.f) {
+        // Pinch to zoom
+        app_state->camera.zoom(-event->deltaY * 0.005f);
+        app_state->camera_changed = true;
+    } else {
+        glm::vec2 prev_mouse(win_width / 2.f, win_height / 2.f);
+
+        const auto cur_mouse =
+            transform_mouse(prev_mouse - glm::vec2(event->deltaX, event->deltaY));
+        prev_mouse = transform_mouse(prev_mouse);
+
+        app_state->camera.rotate(prev_mouse, cur_mouse);
+        app_state->camera_changed = true;
+    }
+
     return true;
 }
 
