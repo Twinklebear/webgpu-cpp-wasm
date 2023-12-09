@@ -69,6 +69,7 @@ struct AppState {
 
 int win_width = 1280;
 int win_height = 720;
+float dpi = 2.f;
 
 glm::vec2 transform_mouse(glm::vec2 in)
 {
@@ -268,6 +269,10 @@ int main(int argc, const char **argv)
         glm::radians(50.f), static_cast<float>(win_width) / win_height, 0.1f, 100.f);
     app_state->camera = ArcballCamera(glm::vec3(0, 0, -2.5), glm::vec3(0), glm::vec3(0, 1, 0));
 
+    // TODO: we can't call this because we also load this same wasm module into a worker
+    // which doesn't have access to the window APIs
+    //dpi = emscripten_get_device_pixel_ratio();
+
     emscripten_set_mousemove_callback("#webgpu-canvas", app_state, true, mouse_move_callback);
     emscripten_set_wheel_callback("#webgpu-canvas", app_state, true, mouse_wheel_callback);
 
@@ -317,14 +322,14 @@ int mouse_wheel_callback(int type, const EmscriptenWheelEvent *event, void *_app
     // user has a mouse and change the behavior. Need to test on a real mouse
     float delta_y_int = 0.f;
     if (std::modf(event->deltaY, &delta_y_int) != 0.f) {
-        // Pinch to zoom
-        app_state->camera.zoom(-event->deltaY * 0.005f);
+        // Pinch to zoom always has some fractional component
+        app_state->camera.zoom(-event->deltaY * 0.005f * dpi);
         app_state->camera_changed = true;
     } else {
         glm::vec2 prev_mouse(win_width / 2.f, win_height / 2.f);
 
         const auto cur_mouse =
-            transform_mouse(prev_mouse - glm::vec2(event->deltaX, event->deltaY));
+            transform_mouse(prev_mouse - dpi * glm::vec2(event->deltaX, event->deltaY));
         prev_mouse = transform_mouse(prev_mouse);
 
         app_state->camera.rotate(prev_mouse, cur_mouse);
