@@ -85,6 +85,23 @@ int main(int argc, const char **argv)
 {
     AppState *app_state = new AppState;
 
+    // TODO: Need a way to call these while also linking threads
+
+    // TODO: we can't call this because we also load this same wasm module into a worker
+    // which doesn't have access to the window APIs
+    // dpi = emscripten_get_device_pixel_ratio();
+    /*
+    double css_w;
+    double css_h;
+    emscripten_get_element_css_size("#webgpu-canvas", &css_w, &css_h);
+    std::cout << "css size = " << css_w << "x" << css_h << "\n";
+
+    emscripten_get_canvas_element_size("#webgpu-canvas", &win_width, &win_height);
+    std::cout << "Canvas element size: " << win_width << "x" << win_height << "\n";
+    win_width = css_w;
+    win_height = css_h;
+    */
+
     app_state->device = wgpu::Device::Acquire(emscripten_webgpu_get_device());
 
     wgpu::InstanceDescriptor instance_desc;
@@ -269,15 +286,12 @@ int main(int argc, const char **argv)
         glm::radians(50.f), static_cast<float>(win_width) / win_height, 0.1f, 100.f);
     app_state->camera = ArcballCamera(glm::vec3(0, 0, -2.5), glm::vec3(0), glm::vec3(0, 1, 0));
 
-    // TODO: we can't call this because we also load this same wasm module into a worker
-    // which doesn't have access to the window APIs
-    //dpi = emscripten_get_device_pixel_ratio();
-
     emscripten_set_mousemove_callback("#webgpu-canvas", app_state, true, mouse_move_callback);
     emscripten_set_wheel_callback("#webgpu-canvas", app_state, true, mouse_wheel_callback);
 
     emscripten_set_main_loop_arg(loop_iteration, app_state, -1, 0);
 
+#if 1
     int x = 0;
     std::thread test_thread([&]() { x = 10; });
     // Note: in a real app, would not join a thread like this on the main thread,
@@ -287,6 +301,7 @@ int main(int argc, const char **argv)
     // shared memory.
     test_thread.join();
     std::cout << "X = " << x << "\n";
+#endif
 
     return 0;
 }
@@ -295,8 +310,7 @@ int mouse_move_callback(int type, const EmscriptenMouseEvent *event, void *_app_
 {
     AppState *app_state = reinterpret_cast<AppState *>(_app_state);
 
-    // TODO: missing a scaling factor here
-    const glm::vec2 cur_mouse = transform_mouse(glm::vec2(event->clientX, event->clientY));
+    const glm::vec2 cur_mouse = transform_mouse(glm::vec2(event->targetX, event->targetY));
 
     if (app_state->prev_mouse != glm::vec2(-2.f)) {
         if (event->buttons & 1) {
