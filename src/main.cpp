@@ -330,13 +330,10 @@ int mouse_wheel_callback(int type, const EmscriptenWheelEvent *event, void *_app
 {
     AppState *app_state = reinterpret_cast<AppState *>(_app_state);
 
-    // Pinch events on the touchpad to zoom have a fractional component, two finger move
-    // together seem to only have integer values
+    // Pinch events on the touchpad the ctrl key set
     // TODO: this likely breaks scroll on a scroll wheel, so we need a way to detect if the
     // user has a mouse and change the behavior. Need to test on a real mouse
-    float delta_y_int = 0.f;
-    if (std::modf(event->deltaY, &delta_y_int) != 0.f) {
-        // Pinch to zoom always has some fractional component
+    if (event->mouse.ctrlKey) {
         app_state->camera.zoom(-event->deltaY * 0.005f * dpi);
         app_state->camera_changed = true;
     } else {
