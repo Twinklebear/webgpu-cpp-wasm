@@ -67,13 +67,16 @@ struct AppState {
     glm::vec2 prev_mouse = glm::vec2(-2.f);
 };
 
+double css_w = 0.0;
+double css_h = 0.0;
+
 int win_width = 1280;
 int win_height = 720;
 float dpi = 2.f;
 
 glm::vec2 transform_mouse(glm::vec2 in)
 {
-    return glm::vec2(in.x * 2.f / win_width - 1.f, 1.f - 2.f * in.y / win_height);
+    return glm::vec2(in.x * 2.f / css_w - 1.f, 1.f - 2.f * in.y / css_h);
 }
 
 int mouse_move_callback(int type, const EmscriptenMouseEvent *event, void *_app_state);
@@ -89,18 +92,17 @@ int main(int argc, const char **argv)
 
     // TODO: we can't call this because we also load this same wasm module into a worker
     // which doesn't have access to the window APIs
-    // dpi = emscripten_get_device_pixel_ratio();
-    /*
-    double css_w;
-    double css_h;
+    dpi = emscripten_get_device_pixel_ratio();
     emscripten_get_element_css_size("#webgpu-canvas", &css_w, &css_h);
-    std::cout << "css size = " << css_w << "x" << css_h << "\n";
+    std::cout << "Canvas element size = " << css_w << "x" << css_h << "\n";
 
     emscripten_get_canvas_element_size("#webgpu-canvas", &win_width, &win_height);
-    std::cout << "Canvas element size: " << win_width << "x" << win_height << "\n";
-    win_width = css_w;
-    win_height = css_h;
-    */
+    std::cout << "Canvas size: " << win_width << "x" << win_height << "\n";
+    win_width = css_w * dpi;
+    win_height = css_h * dpi;
+    std::cout << "Setting canvas size: " << win_width << "x" << win_height << "\n";
+
+    emscripten_set_canvas_element_size("#webgpu-canvas", win_width, win_height);
 
     app_state->device = wgpu::Device::Acquire(emscripten_webgpu_get_device());
 
@@ -337,10 +339,10 @@ int mouse_wheel_callback(int type, const EmscriptenWheelEvent *event, void *_app
         app_state->camera.zoom(-event->deltaY * 0.005f * dpi);
         app_state->camera_changed = true;
     } else {
-        glm::vec2 prev_mouse(win_width / 2.f, win_height / 2.f);
+        glm::vec2 prev_mouse(css_w / 2.f, css_h / 2.f);
 
         const auto cur_mouse =
-            transform_mouse(prev_mouse - dpi * glm::vec2(event->deltaX, event->deltaY));
+            transform_mouse(prev_mouse - glm::vec2(event->deltaX, event->deltaY));
         prev_mouse = transform_mouse(prev_mouse);
 
         app_state->camera.rotate(prev_mouse, cur_mouse);
