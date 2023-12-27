@@ -1,8 +1,6 @@
 #include <array>
-#include <cmath>
 #include <cstdlib>
 #include <iostream>
-#include <string>
 #include <thread>
 #include <vector>
 #include "arcball_camera.h"
@@ -14,39 +12,7 @@
 #include <emscripten/html5_webgpu.h>
 #include "webgpu_cpp.h"
 
-const std::string WGSL_SHADER = R"(
-alias float4 = vec4<f32>;
-
-struct VertexInput {
-    @location(0) position: float4,
-    @location(1) color: float4,
-};
-
-struct VertexOutput {
-    @builtin(position) position: float4,
-    @location(0) color: float4,
-};
-
-struct ViewParams {
-    view_proj: mat4x4<f32>,
-};
-
-@group(0) @binding(0)
-var<uniform> view_params: ViewParams;
-
-@vertex
-fn vertex_main(vert: VertexInput) -> VertexOutput {
-    var out: VertexOutput;
-    out.color = vert.color;
-    out.position = view_params.view_proj * vert.position;
-    return out;
-};
-
-@fragment
-fn fragment_main(in: VertexOutput) -> @location(0) float4 {
-    return float4(in.color);
-}
-)";
+#include "embedded_files.h"
 
 struct AppState {
     wgpu::Device device;
@@ -149,13 +115,13 @@ int main(int argc, const char **argv)
     wgpu::ShaderModule shader_module;
     {
         wgpu::ShaderModuleWGSLDescriptor shader_module_wgsl;
-        shader_module_wgsl.code = WGSL_SHADER.c_str();
+        shader_module_wgsl.code = reinterpret_cast<const char*>(triangle_wgsl);
 
         wgpu::ShaderModuleDescriptor shader_module_desc;
         shader_module_desc.nextInChain = &shader_module_wgsl;
         shader_module = app_state->device.CreateShaderModule(&shader_module_desc);
 
-        // This is unimplemented in Emscripten, I can make my own
+        // This is coming in Emscripten 3.1.51
         /*
         shader_module.GetCompilationInfo(
             [](WGPUCompilationInfoRequestStatus status,

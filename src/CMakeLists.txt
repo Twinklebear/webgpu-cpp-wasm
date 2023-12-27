@@ -1,9 +1,11 @@
+embed_files(embedded_files ./triangle.wgsl)
+
 add_executable(wgpu_app main.cpp arcball_camera.cpp)
 
 set_target_properties(wgpu_app PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED
                                                           ON)
 
-target_link_libraries(wgpu_app PRIVATE glm)
+target_link_libraries(wgpu_app PRIVATE glm embedded_files)
 
 target_compile_options(wgpu_app PRIVATE -pthread)
 
