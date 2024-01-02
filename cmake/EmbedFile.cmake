@@ -5,24 +5,17 @@ get_filename_component(BINTOH "${CMAKE_CURRENT_LIST_DIR}/BinToH.cmake" ABSOLUTE)
 function(embed_files)
   cmake_parse_arguments(PARSE_ARGV 1 EMBED_FILE "" "" "${options}")
 
-  message("Embedding files ${EMBED_FILE_UNPARSED_ARGUMENTS}")
-
   # Resolve the full path to each file
   set(EMBED_FILE_LIST "")
   foreach(FIN IN LISTS EMBED_FILE_UNPARSED_ARGUMENTS)
-    message("FIN = ${FIN}")
     get_filename_component(FULL_FILE_PATH "${CMAKE_CURRENT_LIST_DIR}/${FIN}"
                            ABSOLUTE)
-    message("Full path ${FULL_FILE_PATH}")
     list(APPEND EMBED_FILE_LIST ${FULL_FILE_PATH})
 
     get_filename_component(FNAME ${FULL_FILE_PATH} NAME_WE)
-    message("FNAME = ${FNAME}")
   endforeach()
-  message("Embed file list = ${EMBED_FILE_LIST}")
 
   string(REPLACE ";" "," EMBED_FILE_STR "${EMBED_FILE_LIST}")
-  message(${EMBED_FILE_STR})
 
   set(EMBED_HEADER_FILE "${CMAKE_CURRENT_BINARY_DIR}/${ARGV0}.h")
   set(EMBED_CPP_FILE "${CMAKE_CURRENT_BINARY_DIR}/${ARGV0}.cpp")
