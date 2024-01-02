@@ -16,17 +16,24 @@ function sharedArrayBufferSupport()
 
 (async () =>
 {
+    let canvas = document.getElementById("webgpu-canvas")
     if (navigator.gpu === undefined) {
-        document.getElementById("webgpu-canvas").setAttribute("style", "display:none;");
+        canvas.setAttribute("style", "display:none;");
         document.getElementById("no-webgpu").setAttribute("style", "display:block;");
         return;
     }
 
     if (!sharedArrayBufferSupport()) {
-        document.getElementById("webgpu-canvas").setAttribute("style", "display:none;");
+        canvas.setAttribute("style", "display:none;");
         document.getElementById("no-shared-array-buffer").setAttribute("style", "display:block;");
         return;
     }
+
+    // Block right click so we can use right click + drag to pan
+    canvas.addEventListener("contextmenu", (evt) =>
+    {
+        evt.preventDefault();
+    });
 
     // Get a GPU device to render with
     let adapter = await navigator.gpu.requestAdapter();

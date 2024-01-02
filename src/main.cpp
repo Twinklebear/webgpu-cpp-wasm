@@ -301,7 +301,7 @@ int mouse_wheel_callback(int type, const EmscriptenWheelEvent *event, void *_app
     // Pinch events on the touchpad the ctrl key set
     // TODO: this likely breaks scroll on a scroll wheel, so we need a way to detect if the
     // user has a mouse and change the behavior. Need to test on a real mouse
-    if (event->mouse.ctrlKey) {
+    if (true) {//event->mouse.ctrlKey) {
         app_state->camera.zoom(-event->deltaY * 0.005f * dpi);
         app_state->camera_changed = true;
     } else {
