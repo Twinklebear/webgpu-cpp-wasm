@@ -12,7 +12,6 @@
 #
 function(bin_to_h)
   string(REPLACE "," ";" INPUT_FILES "${BIN_TO_H_INPUT_FILES}")
-  message("input files ${INPUT_FILES}")
 
   # Create the header and CPP files
   file(WRITE ${BIN_TO_H_HEADER_FILE} "#pragma once\n")
@@ -23,12 +22,10 @@ function(bin_to_h)
 
   # Now loop through and embed each file
   foreach(FIN IN LISTS INPUT_FILES)
-      message("FIN = ${FIN}")
     get_filename_component(VAR_NAME ${FIN} NAME_WE)
     get_filename_component(VAR_NAME_SUFFIX ${FIN} EXT)
     string(REPLACE "." "_" VAR_NAME_SUFFIX ${VAR_NAME_SUFFIX})
     set(VAR_NAME "${VAR_NAME}${VAR_NAME_SUFFIX}")
-    message("VAR_NAME = ${VAR_NAME}")
 
     file(READ ${FIN} BINARY_CONTENT HEX)
     string(LENGTH "${BINARY_CONTENT}" HEX_STRING_LENGTH)
