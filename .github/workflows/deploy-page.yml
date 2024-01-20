@@ -1,0 +1,65 @@
+name: Deploy App
+
+on: ["push"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "latest"
+
+
+      - name: Setup Emscripten SDK
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git
+          cd emsdk
+          # TODO: 3.1.52 has a change to WebGPU API that is incompatible
+          # with the C++ bindings I have in the repo?
+          ./emsdk install 3.1.51
+          ./emsdk activate 3.1.51
+
+      - name: Configure
+        run: |
+          source ./emsdk/emsdk_env.sh
+          mkdir cmake-build
+          cd cmake-build
+          emcmake cmake .. -DCMAKE_BUILD_TYPE=Release
+
+
+      - name: Build C++
+        working-directory: ${{ github.workspace }}/cmake-build
+        run: |
+          source ../emsdk/emsdk_env.sh
+          make
+
+      - name: Build Web App Dist
+        working-directory: ${{ github.workspace }}/web/
+        run: |
+          npm i
+          npm run build
+
+      - name: Upload Web App Dist
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ github.workspace }}/web/dist
+
+  deploy:
+    needs: build
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    # Specify runner + deployment step
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
