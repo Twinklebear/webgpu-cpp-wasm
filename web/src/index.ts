@@ -1,5 +1,4 @@
 import WGPUApp from "./cpp/wgpu_app.js";
-//import wasm from "./cpp/wgpu_app.wasm";
 
 function sharedArrayBufferSupport()
 {
