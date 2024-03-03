@@ -64,20 +64,20 @@ set(COPY_SRC_MAP $<AND:$<BOOL:${ENABLE_SOURCE_MAP}>,$<CONFIG:DEBUG>>)
 
 add_custom_command(
   DEPENDS wgpu_app
-  OUTPUT ${WEB_OUT_DIR}/wgpu_app.js ${WEB_OUT_DIR}/wgpu_app.worker.js
+  OUTPUT ${WEB_OUT_DIR}/wgpu_app.js ${WEB_OUT_DIR}/wgpu_app.worker.mjs
          ${WEB_OUT_DIR}/wgpu_app.wasm
          $<${COPY_SRC_MAP}:${WEB_OUT_DIR}/wgpu_app.wasm.map>
   COMMAND cmake -E make_directory ${WEB_OUT_DIR}
   COMMAND
     cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.js
-    ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.worker.js
+    ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.worker.mjs
     ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.wasm
     $<${COPY_SRC_MAP}:${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.wasm.map>
     ${WEB_OUT_DIR})
 
 add_custom_target(
   copy_wasm_to_app ALL
-  DEPENDS ${WEB_OUT_DIR}/wgpu_app.js ${WEB_OUT_DIR}/wgpu_app.worker.js
+  DEPENDS ${WEB_OUT_DIR}/wgpu_app.js ${WEB_OUT_DIR}/wgpu_app.worker.mjs
           ${WEB_OUT_DIR}/wgpu_app.wasm
           $<${COPY_SRC_MAP}:${WEB_OUT_DIR}/wgpu_app.wasm.map>
   COMMENT "Copying wasm build to ${WEB_OUT_DIR}")

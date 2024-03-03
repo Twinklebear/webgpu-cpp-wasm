@@ -72,8 +72,7 @@ int main(int argc, const char **argv)
 
     app_state->device = wgpu::Device::Acquire(emscripten_webgpu_get_device());
 
-    wgpu::InstanceDescriptor instance_desc;
-    wgpu::Instance instance = wgpu::CreateInstance(&instance_desc);
+    wgpu::Instance instance = wgpu::CreateInstance();
 
     app_state->device.SetUncapturedErrorCallback(
         [](WGPUErrorType type, const char *msg, void *data) {
@@ -295,7 +294,7 @@ int mouse_wheel_callback(int type, const EmscriptenWheelEvent *event, void *_app
     // Pinch events on the touchpad the ctrl key set
     // TODO: this likely breaks scroll on a scroll wheel, so we need a way to detect if the
     // user has a mouse and change the behavior. Need to test on a real mouse
-    if (true) {//event->mouse.ctrlKey) {
+    if (true) {  // event->mouse.ctrlKey) {
         app_state->camera.zoom(-event->deltaY * 0.005f * dpi);
         app_state->camera_changed = true;
     } else {
