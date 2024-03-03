@@ -7,7 +7,6 @@ endif()
 
 if(EMSCRIPTEN)
   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake")
-  include(ExternalProject)
 
   include(cmake/glm.cmake)
 

@@ -1,96 +1,86 @@
-#include <memory>
-#include <oatpp-websocket/ConnectionHandler.hpp>
-#include <oatpp-websocket/Handshaker.hpp>
-#include <oatpp-websocket/WebSocket.hpp>
-#include <oatpp/core/macro/component.hpp>
-#include <oatpp/network/Server.hpp>
-#include <oatpp/network/tcp/server/ConnectionProvider.hpp>
-#include <oatpp/parser/json/mapping/ObjectMapper.hpp>
-#include <oatpp/web/server/HttpConnectionHandler.hpp>
-#include <oatpp/web/server/HttpRouter.hpp>
+#include "App.h"
+#include "WebSocketProtocol.h"
 
-#include "oatpp_controller.h"
-#include "oatpp_ws_listener.h"
-
-// Based on Oatpp examples
-// https://github.com/oatpp/example-websocket
-
-struct AppComponent {
-    OATPP_CREATE_COMPONENT(std::shared_ptr<oatpp::network::ServerConnectionProvider>,
-                           serverConnectionProvider)
-    ([] {
-        return oatpp::network::tcp::server::ConnectionProvider::createShared(
-            {"0.0.0.0", 8000, oatpp::network::Address::IP_4});
-    }());
-
-    // Router component
-    OATPP_CREATE_COMPONENT(std::shared_ptr<oatpp::web::server::HttpRouter>, httpRouter)
-    ([] { return oatpp::web::server::HttpRouter::createShared(); }());
-
-    // HTTP connection handler (is this needed?)
-    OATPP_CREATE_COMPONENT(std::shared_ptr<oatpp::network::ConnectionHandler>,
-                           httpConnectionHandler)
-    ("http", [] {
-        OATPP_COMPONENT(std::shared_ptr<oatpp::web::server::HttpRouter>,
-                        router);  // get Router component
-        return oatpp::web::server::HttpConnectionHandler::createShared(router);
-    }());
-
-    // Create ObjectMapper component to serialize/deserialize DTOs in Contoller's API
-    OATPP_CREATE_COMPONENT(std::shared_ptr<oatpp::data::mapping::ObjectMapper>,
-                           apiObjectMapper)
-    ([] { return oatpp::parser::json::mapping::ObjectMapper::createShared(); }());
-
-    // Websocket connection handler
-    OATPP_CREATE_COMPONENT(std::shared_ptr<oatpp::network::ConnectionHandler>,
-                           websocketConnectionHandler)
-    ("websocket", [] {
-        auto connectionHandler = oatpp::websocket::ConnectionHandler::createShared();
-        connectionHandler->setSocketInstanceListener(
-            std::make_shared<OatppWSInstanceListener>());
-        return connectionHandler;
-    }());
+struct PerSocketData {
+    // No data
 };
-
-void run()
-{
-    /* Register Components in scope of run() method */
-    AppComponent components;
-
-    /* Get router component */
-    OATPP_COMPONENT(std::shared_ptr<oatpp::web::server::HttpRouter>, router);
-
-    /* Create OatppController and add all of its endpoints to router */
-    router->addController(std::make_shared<OatppController>());
-
-    /* Get connection handler component */
-    OATPP_COMPONENT(
-        std::shared_ptr<oatpp::network::ConnectionHandler>, connectionHandler, "http");
-
-    /* Get connection provider component */
-    OATPP_COMPONENT(std::shared_ptr<oatpp::network::ServerConnectionProvider>,
-                    connectionProvider);
-
-    /* Create server which takes provided TCP connections and passes them to HTTP connection
-     * handler */
-    oatpp::network::Server server(connectionProvider, connectionHandler);
-
-    /* Priny info about server port */
-    OATPP_LOGI("MyApp",
-               "Server running on port %s",
-               connectionProvider->getProperty("port").getData());
-
-    /* Run server */
-    server.run();
-}
 
 int main(int argc, const char *argv[])
 {
-    oatpp::base::Environment::init();
+    uWS::App()
+        .ws<PerSocketData>(
+            "/*",
+            {// High max payload and idle timeout for the demo/test
+             .maxPayloadLength = 1024 * 1024 * 1024,
+             .idleTimeout = 600,
+             .open = [](auto *ws) { std::cout << "New connection opened\n"; },
+             .message =
+                 [](auto *ws, std::string_view message, uWS::OpCode op_code) {
+                     std::cout << "Receive message of size: " << message.size() << ": "
+                               << message << "\n";
 
-    run();
+                     std::cout << "Message opcode: ";
+                     switch (op_code) {
+                     case uWS::OpCode::CONTINUATION:
+                         std::cout << "CONTINUATION\n";
+                         break;
+                     case uWS::OpCode::TEXT:
+                         std::cout << "TEXT\n";
+                         break;
+                     case uWS::OpCode::BINARY:
+                         std::cout << "BINARY\n";
+                         break;
+                     case uWS::OpCode::CLOSE:
+                         std::cout << "CLOSE\n";
+                         break;
+                     case uWS::OpCode::PING:
+                         std::cout << "PING\n";
+                         break;
+                     case uWS::OpCode::PONG:
+                         std::cout << "PONG\n";
+                         break;
+                     }
 
-    oatpp::base::Environment::destroy();
+                     // Send back some data to the demo app, text and binary
+                     const std::string text_message =
+                         "Hello from uWebSocket: " + std::string(message);
+                     ws->send(text_message, uWS::OpCode::TEXT);
+
+                     // And some binary data
+                     const std::string bin_message =
+                         "This is sent as binary: " + std::string(message);
+                     ws->send(text_message);
+                 },
+             .dropped =
+                 [](auto * /*ws*/, std::string_view /*message*/, uWS::OpCode /*opCode*/) {
+                     /* A message was dropped due to set maxBackpressure and
+                      * closeOnBackpressureLimit limit */
+                     std::cout << "Dropped\n";
+                 },
+             .drain =
+                 [](auto *ws) {
+                     std::cout << "Drain, buffer amount = " << ws->getBufferedAmount() << "\n";
+                     /* Check ws->getBufferedAmount() here */
+                 },
+             .ping =
+                 [](auto *ws, std::string_view) {
+                     std::cout << "PING\n";
+                     ws->send("pong", uWS::OpCode::PONG);
+                 },
+             .pong = [](auto * /*ws*/,
+                        std::string_view view) { std::cout << "Got pong: " << view << "\n"; },
+             .close =
+                 [](auto * /*ws*/, int code, std::string_view message) {
+                     /* You may access ws->getUserData() here */
+                     std::cout << "socket closed: " << message << ", code = " << code << "\n";
+                 }})
+        .listen(8000,
+                [](auto *listenSocket) {
+                    if (listenSocket) {
+                        std::cout << "Listening on 8000\n";
+                    }
+                })
+        .run();
 
     return 0;
 }
