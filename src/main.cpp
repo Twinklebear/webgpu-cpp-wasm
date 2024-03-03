@@ -102,8 +102,7 @@ int main(int argc, const char **argv)
 
     app_state->device = wgpu::Device::Acquire(emscripten_webgpu_get_device());
 
-    wgpu::InstanceDescriptor instance_desc;
-    wgpu::Instance instance = wgpu::CreateInstance(&instance_desc);
+    wgpu::Instance instance = wgpu::CreateInstance();
 
     app_state->device.SetUncapturedErrorCallback(
         [](WGPUErrorType type, const char *msg, void *data) {
@@ -151,8 +150,6 @@ int main(int argc, const char **argv)
         shader_module_desc.nextInChain = &shader_module_wgsl;
         shader_module = app_state->device.CreateShaderModule(&shader_module_desc);
 
-        // This is unimplemented in Emscripten, I can make my own
-        /*
         shader_module.GetCompilationInfo(
             [](WGPUCompilationInfoRequestStatus status,
                WGPUCompilationInfo const *info,
@@ -184,7 +181,6 @@ int main(int argc, const char **argv)
                 }
             },
             nullptr);
-            */
     }
 
     // Upload vertex data
