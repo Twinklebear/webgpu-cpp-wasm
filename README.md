@@ -36,4 +36,7 @@ npm run serve
 ```
 
 You can then visit `localhost:8080` in the browser to see the app running.
+You may see a warning about a circular dependency from webpack, this is
+related to the worker thread file and the main JS file depending on each other,
+but is fine.
 
