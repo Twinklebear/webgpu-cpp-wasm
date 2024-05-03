@@ -7,14 +7,13 @@ set_target_properties(wgpu_app PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED
 
 target_link_libraries(wgpu_app PRIVATE glm embedded_files)
 
-target_compile_options(wgpu_app PRIVATE -pthread)
+# target_compile_options(wgpu_app PRIVATE -pthread)
 
 target_link_options(
   wgpu_app
   PRIVATE
   "SHELL: -sENVIRONMENT='web,worker'"
-  -pthread
-  -sPTHREAD_POOL_SIZE=1
+  # -pthread -sPTHREAD_POOL_SIZE=1
   -sEXPORT_ES6
   -sEXPORT_NAME=WGPUApp
   -sUSE_WEBGPU=1
@@ -62,8 +61,7 @@ add_custom_command(
   COMMAND
     cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.js
     ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.worker.mjs
-    ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.wasm
-    ${WEB_OUT_DIR})
+    ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.wasm ${WEB_OUT_DIR})
 
 add_custom_target(
   copy_wasm_to_app ALL

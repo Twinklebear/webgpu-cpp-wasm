@@ -1,8 +1,6 @@
 #include <array>
 #include <cstdlib>
 #include <iostream>
-#include <thread>
-#include <vector>
 #include "arcball_camera.h"
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
@@ -53,8 +51,6 @@ void loop_iteration(void *_app_state);
 int main(int argc, const char **argv)
 {
     AppState *app_state = new AppState;
-
-    // TODO: Need a way to call these while also linking threads
 
     // TODO: we can't call this because we also load this same wasm module into a worker
     // which doesn't have access to the window APIs
@@ -251,18 +247,6 @@ int main(int argc, const char **argv)
     emscripten_set_wheel_callback("#webgpu-canvas", app_state, true, mouse_wheel_callback);
 
     emscripten_set_main_loop_arg(loop_iteration, app_state, -1, 0);
-
-#if 1
-    int x = 0;
-    std::thread test_thread([&]() { x = 10; });
-    // Note: in a real app, would not join a thread like this on the main thread,
-    // should detach the thread and likely let it just run as a persistent worker thread
-    // or just do joins on other threads. But we do it here to make sure
-    // that we should see the changed value of x on the main thread now to test
-    // shared memory.
-    test_thread.join();
-    std::cout << "X = " << x << "\n";
-#endif
 
     return 0;
 }
