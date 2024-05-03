@@ -11,6 +11,13 @@ include(${CMAKE_CURRENT_LIST_DIR}/cmake/EmbedFile.cmake)
 
 include(cmake/glm.cmake)
 
+if (NOT EMSCRIPTEN)
+  include(cmake/FetchDawn.cmake)
+endif()
+
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 
-add_subdirectory(src)
+# TODO building the source code
+if (EMSCRIPTEN)
+  add_subdirectory(src)
+endif()
