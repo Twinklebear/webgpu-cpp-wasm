@@ -11,13 +11,12 @@ include(${CMAKE_CURRENT_LIST_DIR}/cmake/EmbedFile.cmake)
 
 include(cmake/glm.cmake)
 
-if (NOT EMSCRIPTEN)
+if(NOT EMSCRIPTEN)
   include(cmake/FetchDawn.cmake)
+  find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
+  find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)
 endif()
 
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 
-# TODO building the source code
-if (EMSCRIPTEN)
-  add_subdirectory(src)
-endif()
+add_subdirectory(src)

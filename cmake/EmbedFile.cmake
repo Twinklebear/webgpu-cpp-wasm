@@ -31,4 +31,6 @@ function(embed_files)
 
   add_library(${ARGV0} ${EMBED_CPP_FILE})
   target_include_directories(${ARGV0} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+  set_target_properties(${ARGV0} PROPERTIES CXX_STANDARD 20
+                                            CXX_STANDARD_REQUIRED ON)
 endfunction()
