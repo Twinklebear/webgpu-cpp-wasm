@@ -1,6 +1,7 @@
 #include <iostream>
 #include <SDL.h>
 #include "arcball_camera.h"
+#include "sdl2webgpu.h"
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 
@@ -60,7 +61,7 @@ int main(int argc, const char **argv)
 #ifdef EMSCRIPTEN
     app_state->device = wgpu::Device::Acquire(emscripten_webgpu_get_device());
 #else
-    // Need to use request adapter here
+    // Need to setup request adapter here
 #endif
 
     app_state->device.SetUncapturedErrorCallback(
@@ -76,17 +77,9 @@ int main(int argc, const char **argv)
 
     app_state->queue = app_state->device.GetQueue();
 
-#ifdef EMSCRIPTEN
-    wgpu::SurfaceDescriptorFromCanvasHTMLSelector selector;
-    selector.selector = "#canvas";
-#else
-#error "TODO"
-#endif
 
-    wgpu::SurfaceDescriptor surface_desc;
-    surface_desc.nextInChain = &selector;
 
-    app_state->surface = app_state->instance.CreateSurface(&surface_desc);
+    app_state->surface = wgpu::Surface::Acquire(sdl2GetWGPUSurface(app_state->instance.Get(), window));
 
     wgpu::SwapChainDescriptor swap_chain_desc;
     swap_chain_desc.format = wgpu::TextureFormat::BGRA8Unorm;

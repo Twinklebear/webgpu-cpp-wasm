@@ -66,8 +66,19 @@ if(EMSCRIPTEN)
     DEPENDS ${WEB_OUT_DIR}/wgpu_app.js ${WEB_OUT_DIR}/wgpu_app.wasm
     COMMENT "Copying wasm build to ${WEB_OUT_DIR}")
 else()
+  add_library(sdl2webgpu STATIC sdl2webgpu.c)
+  if(NOT EMSCRIPTEN)
+    target_link_libraries(sdl2webgpu PUBLIC SDL2::SDL2 webgpu)
+    if(APPLE)
+      target_compile_options(sdl2webgpu PRIVATE -x objective-c)
+      target_link_libraries(
+        sdl2webgpu PRIVATE "-framework Cocoa" "-framework CoreVideo"
+                           "-framework IOKit" "-framework QuartzCore")
+    endif()
+  endif()
+
   if(TARGET SDL2::SDL2main)
     target_link_libraries(wgpu_app PUBLIC SDL2::SDL2main)
   endif()
-  target_link_libraries(wgpu_app PUBLIC SDL2::SDL2 webgpu)
+  target_link_libraries(wgpu_app PUBLIC SDL2::SDL2 webgpu sdl2webgpu)
 endif()
