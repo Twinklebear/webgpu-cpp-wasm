@@ -35,10 +35,10 @@ WGPUSurface sdl2GetWGPUSurface(WGPUInstance instance, SDL_Window *window)
     native_surface.layer = metal_layer;
 
 #elif defined(SDL_VIDEO_DRIVER_X11)
-    wgpu::SurfaceDescriptorFromXlib native_surface = {0};
-    native_surf.chain.sType = WGPUSType_SurfaceDescriptorFromXlibWindow;
-    native_surf.display = wm_info.info.x11.display;
-    native_surf.window = wm_info.info.x11.window;
+    WGPUSurfaceDescriptorFromXlibWindow native_surface = {0};
+    native_surface.chain.sType = WGPUSType_SurfaceDescriptorFromXlibWindow;
+    native_surface.display = wm_info.info.x11.display;
+    native_surface.window = wm_info.info.x11.window;
 #elif defined(SDL_VIDEO_DRIVER_WAYLAND)
     WGPUSurfaceDescriptorFromWaylandSurface native_surface = {0};
     native_surface.chain.sType = WGPUSType_SurfaceDescriptorFromWaylandSurface;
