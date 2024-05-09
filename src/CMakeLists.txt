@@ -1,11 +1,26 @@
 embed_files(embedded_files ./triangle.wgsl)
 
+add_library(sdl2webgpu STATIC sdl2webgpu.c)
+
+if(NOT EMSCRIPTEN)
+  target_link_libraries(sdl2webgpu PUBLIC SDL2::SDL2 webgpu)
+  if(APPLE)
+    target_compile_options(sdl2webgpu PRIVATE -x objective-c)
+    target_link_libraries(
+      sdl2webgpu PRIVATE "-framework Cocoa" "-framework CoreVideo"
+                         "-framework IOKit" "-framework QuartzCore")
+  endif()
+elseif(EMSCRIPTEN)
+  target_compile_options(sdl2webgpu PUBLIC --use-port=sdl2)
+  target_link_options(sdl2webgpu PUBLIC -sUSE_SDL=2)
+endif()
+
 add_executable(wgpu_app main.cpp arcball_camera.cpp)
 
 set_target_properties(wgpu_app PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED
                                                           ON)
 
-target_link_libraries(wgpu_app PRIVATE glm embedded_files)
+target_link_libraries(wgpu_app PRIVATE glm embedded_files sdl2webgpu)
 
 if(EMSCRIPTEN)
   target_compile_options(wgpu_app PRIVATE --use-port=sdl2)
@@ -66,19 +81,8 @@ if(EMSCRIPTEN)
     DEPENDS ${WEB_OUT_DIR}/wgpu_app.js ${WEB_OUT_DIR}/wgpu_app.wasm
     COMMENT "Copying wasm build to ${WEB_OUT_DIR}")
 else()
-  add_library(sdl2webgpu STATIC sdl2webgpu.c)
-  if(NOT EMSCRIPTEN)
-    target_link_libraries(sdl2webgpu PUBLIC SDL2::SDL2 webgpu)
-    if(APPLE)
-      target_compile_options(sdl2webgpu PRIVATE -x objective-c)
-      target_link_libraries(
-        sdl2webgpu PRIVATE "-framework Cocoa" "-framework CoreVideo"
-                           "-framework IOKit" "-framework QuartzCore")
-    endif()
-  endif()
-
   if(TARGET SDL2::SDL2main)
     target_link_libraries(wgpu_app PUBLIC SDL2::SDL2main)
   endif()
-  target_link_libraries(wgpu_app PUBLIC SDL2::SDL2 webgpu sdl2webgpu)
+  target_link_libraries(wgpu_app PUBLIC SDL2::SDL2 webgpu)
 endif()

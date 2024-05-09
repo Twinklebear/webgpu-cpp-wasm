@@ -22,6 +22,7 @@ function sharedArrayBufferSupport() {
     return;
   }
 
+  /*
   if (!sharedArrayBufferSupport()) {
     canvas.setAttribute("style", "display:none;");
     document
@@ -29,9 +30,10 @@ function sharedArrayBufferSupport() {
       .setAttribute("style", "display:block;");
     return;
   }
+  */
 
   // Block right click so we can use right click + drag to pan
-  canvas.addEventListener("contextmenu", (evt) => {
+  canvas.addEventListener("contextmenu", (evt: Event) => {
     evt.preventDefault();
   });
 

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdexcept>
 #include <SDL.h>
 #include "arcball_camera.h"
 #include "sdl2webgpu.h"
@@ -17,6 +18,7 @@
 
 struct AppState {
     wgpu::Instance instance;
+    wgpu::Adapter adapter;
     wgpu::Device device;
     wgpu::Queue queue;
 
@@ -37,6 +39,72 @@ uint32_t win_height = 720;
 
 void app_loop(void *_app_state);
 
+#ifndef __EMSCRIPTEN__
+// TODO: move to another file
+wgpu::Adapter request_adapter(wgpu::Instance &instance,
+                              const wgpu::RequestAdapterOptions &options)
+{
+    struct Result {
+        WGPUAdapter adapter = nullptr;
+        bool success = false;
+    };
+
+    Result result;
+    instance.RequestAdapter(
+        &options,
+        [](WGPURequestAdapterStatus status,
+           WGPUAdapter adapter,
+           const char *msg,
+           void *user_data) {
+            Result *res = reinterpret_cast<Result *>(user_data);
+            if (status == WGPURequestAdapterStatus_Success) {
+                res->adapter = adapter;
+                res->success = true;
+            } else {
+                std::cerr << "Failed to get WebGPU adapter: " << msg << std::endl;
+            }
+        },
+        &result);
+
+    if (!result.success) {
+        throw std::runtime_error("Failed to get WebGPU adapter");
+    }
+
+    return wgpu::Adapter::Acquire(result.adapter);
+}
+
+wgpu::Device request_device(wgpu::Adapter &adapter, const wgpu::DeviceDescriptor &options)
+{
+    struct Result {
+        WGPUDevice device = nullptr;
+        bool success = false;
+    };
+
+    Result result;
+    adapter.RequestDevice(
+        &options,
+        [](WGPURequestDeviceStatus status,
+           WGPUDevice device,
+           const char *msg,
+           void *user_data) {
+            Result *res = reinterpret_cast<Result *>(user_data);
+            if (status == WGPURequestDeviceStatus_Success) {
+                res->device = device;
+                res->success = true;
+            } else {
+                std::cerr << "Failed to get WebGPU device: " << msg << std::endl;
+            }
+        },
+        &result);
+
+    if (!result.success) {
+        throw std::runtime_error("Failed to get WebGPU device");
+    }
+
+    return wgpu::Device::Acquire(result.device);
+}
+#endif
+
 int main(int argc, const char **argv)
 {
     AppState *app_state = new AppState;
@@ -56,12 +124,21 @@ int main(int argc, const char **argv)
     std::cout << "SDL window = " << window << "\n";
 
     app_state->instance = wgpu::CreateInstance();
+    app_state->surface =
+        wgpu::Surface::Acquire(sdl2GetWGPUSurface(app_state->instance.Get(), window));
 
-// TODO: set up webgpu device
 #ifdef EMSCRIPTEN
+    // The adapter/device request has already been done for us in the TypeScript code
+    // when running in Emscripten
     app_state->device = wgpu::Device::Acquire(emscripten_webgpu_get_device());
 #else
-    // Need to setup request adapter here
+    wgpu::RequestAdapterOptions adapter_options = {};
+    adapter_options.compatibleSurface = app_state->surface;
+    adapter_options.powerPreference = wgpu::PowerPreference::HighPerformance;
+    app_state->adapter = request_adapter(app_state->instance, adapter_options);
+
+    wgpu::DeviceDescriptor device_options = {};
+    app_state->device = request_device(app_state->adapter, device_options);
 #endif
 
     app_state->device.SetUncapturedErrorCallback(
@@ -76,10 +153,6 @@ int main(int argc, const char **argv)
         nullptr);
 
     app_state->queue = app_state->device.GetQueue();
-
-
-
-    app_state->surface = wgpu::Surface::Acquire(sdl2GetWGPUSurface(app_state->instance.Get(), window));
 
     wgpu::SwapChainDescriptor swap_chain_desc;
     swap_chain_desc.format = wgpu::TextureFormat::BGRA8Unorm;
@@ -135,6 +208,9 @@ void app_loop(void *_app_state)
     render_pass_enc.End();
 
     wgpu::CommandBuffer commands = encoder.Finish();
-    // Here the # refers to the number of command buffers being submitted
     app_state->queue.Submit(1, &commands);
+
+#ifndef __EMSCRIPTEN__
+    app_state->swap_chain.Present();
+#endif
 }

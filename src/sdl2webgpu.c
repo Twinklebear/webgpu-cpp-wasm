@@ -14,7 +14,7 @@ WGPUSurface sdl2GetWGPUSurface(WGPUInstance instance, SDL_Window *window)
 #if defined(__EMSCRIPTEN__)
     WGPUSurfaceDescriptorFromCanvasHTMLSelector native_surface = {0};
     native_surface.chain.sType = WGPUSType_SurfaceDescriptorFromCanvasHTMLSelector;
-    selector.selector = "#canvas";
+    native_surface.selector = "#canvas";
 #else
     SDL_SysWMinfo wm_info;
     SDL_VERSION(&wm_info.version);
@@ -44,6 +44,8 @@ WGPUSurface sdl2GetWGPUSurface(WGPUInstance instance, SDL_Window *window)
     native_surface.chain.sType = WGPUSType_SurfaceDescriptorFromWaylandSurface;
     native_surface.display = wm_info.info.wl.display;
     native_surface.surface = wm_info.info.wl.surface;
+#else
+#error "Unhandled native platform"
 #endif
 #endif
 
