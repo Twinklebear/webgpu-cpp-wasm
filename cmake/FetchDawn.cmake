@@ -158,13 +158,6 @@ set(AllDawnTargets
     tint-format
     tint-lint)
 
-# This is just used by IDEs
-# https://cmake.org/cmake/help/latest/prop_tgt/FOLDER.html foreach(Target
-# ${AllDawnTargets}) if(TARGET ${Target}) set_property(TARGET ${Target} PROPERTY
-# FOLDER "Dawn") endif() endforeach()
-
-# This is likely needed for other targets as well TODO: Notify this upstream (is
-# this still needed?)
 target_include_directories(dawn_utils
                            PUBLIC ${CMAKE_BINARY_DIR}/_deps/dawn-src/src)
 
