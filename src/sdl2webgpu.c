@@ -21,9 +21,9 @@ WGPUSurface sdl2GetWGPUSurface(WGPUInstance instance, SDL_Window *window)
     SDL_GetWindowWMInfo(window, &wm_info);
 #if defined(SDL_VIDEO_DRIVER_WINDOWS)
     WGPUSurfaceDescriptorFromWindowsHWND native_surface = {0};
-    native_surf.chain.sType = WGPUSType_SurfaceDescriptorFromWindowsHWND;
-    native_surf.hwnd = wm_info.info.win.window;
-    native_surf.hinstance = wm_info.info.win.hinstance;
+    native_surface.chain.sType = WGPUSType_SurfaceDescriptorFromWindowsHWND;
+    native_surface.hwnd = wm_info.info.win.window;
+    native_surface.hinstance = wm_info.info.win.hinstance;
 #elif defined(SDL_VIDEO_DRIVER_COCOA)
     id metal_layer = [CAMetalLayer layer];
     NSWindow *ns_window = wm_info.info.cocoa.window;

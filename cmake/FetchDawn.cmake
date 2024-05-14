@@ -13,7 +13,7 @@ FetchContent_Declare(
   # GIT_SHALLOW ON Manual download mode, even shallower than GIT_SHALLOW ON
   DOWNLOAD_COMMAND
     cd ${FETCHCONTENT_BASE_DIR}/dawn-src && git init && git fetch --depth=1
-    https://dawn.googlesource.com/dawn chromium/6376 && git reset --hard
+    https://dawn.googlesource.com/dawn chromium/6478 && git reset --hard
     FETCH_HEAD)
 
 FetchContent_GetProperties(dawn)
@@ -166,16 +166,9 @@ set(AllDawnTargets
 # This is likely needed for other targets as well TODO: Notify this upstream (is
 # this still needed?)
 target_include_directories(dawn_utils
-                           PUBLIC "${CMAKE_BINARY_DIR}/_deps/dawn-src/src")
+                           PUBLIC ${CMAKE_BINARY_DIR}/_deps/dawn-src/src)
 
-# I've combined the webgpu alias target bit from
-# https://github.com/eliemichel/WebGPU-distribution/blob/dawn-6429/CMakeLists.txt
-# here directly since I'll always only include this for native builds We also
-# build an actual library to compile the C++ bindings
-add_library(webgpu STATIC
-            "${CMAKE_BINARY_DIR}/_deps/dawn-build/gen/src/dawn/webgpu_cpp.cpp")
-set_target_properties(webgpu PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED
-                                                        ON)
-target_link_libraries(webgpu PUBLIC webgpu_dawn)
+add_library(webgpu INTERFACE)
+target_link_libraries(webgpu INTERFACE webgpu_dawn)
 target_include_directories(webgpu
-                           PUBLIC ${CMAKE_BINARY_DIR}/_deps/dawn-src/include)
+    INTERFACE ${CMAKE_BINARY_DIR}/_deps/dawn-src/include)
