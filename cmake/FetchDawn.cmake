@@ -171,4 +171,4 @@ target_include_directories(dawn_utils
 add_library(webgpu INTERFACE)
 target_link_libraries(webgpu INTERFACE webgpu_dawn)
 target_include_directories(webgpu
-    INTERFACE ${CMAKE_BINARY_DIR}/_deps/dawn-src/include)
+                           INTERFACE ${CMAKE_BINARY_DIR}/_deps/dawn-src/include)
