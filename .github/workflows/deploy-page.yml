@@ -1,4 +1,4 @@
-name: Deploy App
+name: Build and Deploy Web App
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build:
+  build-web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,8 +47,8 @@ jobs:
         with:
           path: ${{ github.workspace }}/web/dist
 
-  deploy:
-    needs: build
+  deploy-web:
+    needs: build-web
 
     permissions:
       pages: write
