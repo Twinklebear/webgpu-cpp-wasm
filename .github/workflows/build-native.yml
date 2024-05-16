@@ -64,4 +64,4 @@ jobs:
 
       - name: Build
         working-directory: ${{ github.workspace }}/cmake-build
-        run: make -j `nproc`
+        run: make -j 4
