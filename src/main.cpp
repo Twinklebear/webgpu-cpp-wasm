@@ -1,4 +1,4 @@
-#include <iomanip>
+#include <array>
 #include <iostream>
 #include <stdexcept>
 #include <SDL.h>
