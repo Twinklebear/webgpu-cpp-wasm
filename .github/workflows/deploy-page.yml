@@ -19,8 +19,8 @@ jobs:
         run: |
           git clone https://github.com/emscripten-core/emsdk.git
           cd emsdk
-          ./emsdk install 3.1.54
-          ./emsdk activate 3.1.54
+          ./emsdk install 3.1.60
+          ./emsdk activate 3.1.60
 
       - name: Configure
         run: |
