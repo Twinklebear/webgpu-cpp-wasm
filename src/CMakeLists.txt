@@ -1,20 +1,5 @@
 embed_files(embedded_files ./triangle.wgsl)
 
-add_library(sdl2webgpu STATIC sdl2webgpu.c)
-
-if(NOT EMSCRIPTEN)
-  target_link_libraries(sdl2webgpu PUBLIC SDL2::SDL2 webgpu)
-  if(APPLE)
-    target_compile_options(sdl2webgpu PRIVATE -x objective-c)
-    target_link_libraries(
-      sdl2webgpu PRIVATE "-framework Cocoa" "-framework CoreVideo"
-                         "-framework IOKit" "-framework QuartzCore")
-  endif()
-elseif(EMSCRIPTEN)
-  target_compile_options(sdl2webgpu PUBLIC --use-port=sdl2)
-  target_link_options(sdl2webgpu PUBLIC -sUSE_SDL=2)
-endif()
-
 add_executable(wgpu_app main.cpp arcball_camera.cpp)
 
 set_target_properties(wgpu_app PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED

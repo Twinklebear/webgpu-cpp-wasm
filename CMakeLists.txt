@@ -17,6 +17,8 @@ if(NOT EMSCRIPTEN)
   find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)
 endif()
 
+include(cmake/FetchSDL2WebGPU.cmake)
+
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 
 add_subdirectory(src)
