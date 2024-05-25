@@ -41,7 +41,6 @@ function sharedArrayBufferSupport() {
   let adapter = await navigator.gpu.requestAdapter();
   let device = await adapter.requestDevice();
 
-  console.log(`canvas = ${canvas}`);
   // We set -sINVOKE_RUN=0 when building and call main ourselves because something
   // within the promise -> call directly chain was gobbling exceptions
   // making it hard to debug
