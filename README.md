@@ -3,6 +3,7 @@
 This is a template repo to get started with WebGPU C++ projects
 targetting both native and WebAssembly builds. Easily build apps
 and then test and deploy native binaries or to the web with Webpack.
+The web build is live [here!](https://www.willusher.io/webgpu-cpp-wasm/)
 
 ## Building for Web
 
