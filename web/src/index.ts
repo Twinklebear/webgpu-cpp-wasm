@@ -47,12 +47,6 @@ function sharedArrayBufferSupport() {
   let app = await WGPUApp({
     preinitializedWebGPUDevice: device,
     canvas,
-    print: (...args: any[]) => {
-      console.log(args.join(" "));
-    },
-    printErr: (...args: any[]) => {
-      console.error(args.join(" "));
-    },
   });
 
   try {
