@@ -1,4 +1,5 @@
 {
-    "cmake.configureOnOpen": false,
-    "C_Cpp.default.compilerPath": "/opt/homebrew/opt/llvm/bin/clang++"
+  "cmake.configureOnOpen": false,
+  "C_Cpp.default.compilerPath": "/opt/homebrew/opt/llvm/bin/clang++"
 }
+
