@@ -4,7 +4,7 @@
             "name": "Emscripten",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/opt/homebrew/Cellar/emscripten/3.1.50/libexec/cache/sysroot/include/"
+                "/opt/homebrew/Cellar/emscripten/3.1.61/libexec/cache/sysroot/include/"
             ],
             "defines": [
                 "EMSCRIPTEN"

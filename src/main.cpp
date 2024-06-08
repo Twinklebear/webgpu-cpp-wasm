@@ -401,4 +401,5 @@ void app_loop(void *_app_state)
 #ifndef __EMSCRIPTEN__
     app_state->swap_chain.Present();
 #endif
+    app_state->camera_changed = false;
 }
