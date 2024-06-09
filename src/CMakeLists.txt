@@ -22,7 +22,8 @@ if(EMSCRIPTEN)
     -sASSERTIONS=1
     -sINVOKE_RUN=0
     -sUSE_SDL=2
-    # RelWithDebInfo build flags, automatically enables split dwarf
+    # RelWithDebInfo build flags, enable separate dwarf
+    # to reduce wasm size
     $<$<CONFIG:RELWITHDEBINFO>:-gseparate-dwarf=${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.dwarf>
     $<$<CONFIG:RELWITHDEBINFO>:-g>
     $<$<CONFIG:RELWITHDEBINFO>:-O2>
