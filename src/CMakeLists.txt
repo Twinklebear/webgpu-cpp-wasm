@@ -18,7 +18,6 @@ if(EMSCRIPTEN)
     -sEXPORT_NAME=WGPUApp
     -sUSE_WEBGPU=1
     -sALLOW_MEMORY_GROWTH=1
-    -sASSERTIONS=1
     -sINVOKE_RUN=0
     -sUSE_SDL=2
     # RelWithDebInfo build flags, enable separate dwarf
