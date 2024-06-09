@@ -23,6 +23,10 @@ if(EMSCRIPTEN)
     -sEXIT_RUNTIME=1
     -sINVOKE_RUN=0
     -sUSE_SDL=2
+    # RelWithDebInfo build flags, automatically enables split dwarf
+    $<$<CONFIG:RELWITHDEBINFO>:-gseparate-dwarf=${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.dwarf>
+    $<$<CONFIG:RELWITHDEBINFO>:-g>
+    $<$<CONFIG:RELWITHDEBINFO>:-O2>
     # Debug build flags
     $<$<CONFIG:DEBUG>:-fwasm-exceptions>
     $<$<CONFIG:DEBUG>:-g>
