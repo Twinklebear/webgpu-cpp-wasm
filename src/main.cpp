@@ -24,7 +24,6 @@ struct AppState {
     wgpu::Queue queue;
 
     wgpu::Surface surface;
-    wgpu::SwapChain swap_chain;
     wgpu::RenderPipeline render_pipeline;
 
     wgpu::Buffer vertex_buf;
@@ -162,15 +161,13 @@ int main(int argc, const char **argv)
 
     app_state->queue = app_state->device.GetQueue();
 
-    wgpu::SwapChainDescriptor swap_chain_desc;
-    swap_chain_desc.format = wgpu::TextureFormat::BGRA8Unorm;
-    swap_chain_desc.usage = wgpu::TextureUsage::RenderAttachment;
-    swap_chain_desc.presentMode = wgpu::PresentMode::Fifo;
-    swap_chain_desc.width = win_width;
-    swap_chain_desc.height = win_height;
+    wgpu::SurfaceConfiguration surface_config;
+    surface_config.device = app_state->device;
+    surface_config.format = wgpu::TextureFormat::BGRA8Unorm;
+    surface_config.width = win_width;
+    surface_config.height = win_height;
 
-    app_state->swap_chain =
-        app_state->device.CreateSwapChain(app_state->surface, &swap_chain_desc);
+    app_state->surface.Configure(&surface_config);
 
     wgpu::ShaderModule shader_module;
     {
@@ -368,8 +365,18 @@ void app_loop(void *_app_state)
         upload_buf.Unmap();
     }
 
+    wgpu::SurfaceTexture surface_texture;
+    app_state->surface.GetCurrentTexture(&surface_texture);
+
+    wgpu::TextureViewDescriptor texture_view_desc;
+    texture_view_desc.format = surface_texture.texture.GetFormat();
+    texture_view_desc.dimension = wgpu::TextureViewDimension::e2D;
+    texture_view_desc.mipLevelCount = 1;
+    texture_view_desc.arrayLayerCount = 1;
+
     wgpu::RenderPassColorAttachment color_attachment;
-    color_attachment.view = app_state->swap_chain.GetCurrentTextureView();
+
+    color_attachment.view = surface_texture.texture.CreateView(&texture_view_desc);
     color_attachment.clearValue.r = 0.f;
     color_attachment.clearValue.g = 0.f;
     color_attachment.clearValue.b = 0.f;
@@ -399,7 +406,7 @@ void app_loop(void *_app_state)
     app_state->queue.Submit(1, &commands);
 
 #ifndef __EMSCRIPTEN__
-    app_state->swap_chain.Present();
+    app_state->surface.Present();
 #endif
     app_state->camera_changed = false;
 }
