@@ -1,6 +1,7 @@
 #include <array>
 #include <iostream>
 #include <stdexcept>
+#include <thread>
 #include <SDL.h>
 #include "arcball_camera.h"
 #include "sdl2webgpu.h"
@@ -40,6 +41,7 @@ struct AppState {
 
 uint32_t win_width = 1280;
 uint32_t win_height = 720;
+int x = 0;
 
 glm::vec2 transform_mouse(glm::vec2 in)
 {
@@ -315,6 +317,24 @@ int main(int argc, const char **argv)
     SDL_Quit();
 #endif
 
+    std::thread test_thread([&]() { x = 10; });
+    // Note: in a real app, would not join a thread like this on the main thread,
+    // should detach the thread and likely let it just run as a persistent worker thread
+    // or just do joins on other threads. But we do it here to make sure
+    // that we should see the changed value of x on the main thread now to test
+    // shared memory.
+    test_thread.join();
+    std::cout << "X = " << x << "\n";
+
+    std::thread test2([]() {
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::cout << "hi\n";
+            ++x;
+        }
+    });
+    test2.detach();
+
     return 0;
 }
 
@@ -364,6 +384,7 @@ void app_loop(void *_app_state)
             upload_buf.GetMappedRange(), glm::value_ptr(proj_view), 16 * sizeof(float));
         upload_buf.Unmap();
     }
+    std::cout << "x = " << x << "\n";
 
     wgpu::SurfaceTexture surface_texture;
     app_state->surface.GetCurrentTexture(&surface_texture);

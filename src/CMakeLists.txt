@@ -7,21 +7,24 @@ set_target_properties(wgpu_app PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED
 
 target_link_libraries(wgpu_app PRIVATE glm embedded_files sdl2webgpu)
 
+target_compile_options(wgpu_app PRIVATE -pthread)
+
 if(EMSCRIPTEN)
   target_compile_options(wgpu_app PRIVATE --use-port=sdl2)
 
   target_link_options(
     wgpu_app
     PRIVATE
-    "SHELL: -sENVIRONMENT='web,worker'"
+    "SHELL:-sENVIRONMENT='web,worker'"
     -sEXPORT_ES6
     -sEXPORT_NAME=WGPUApp
     -sUSE_WEBGPU=1
     -sALLOW_MEMORY_GROWTH=1
     -sINVOKE_RUN=0
     -sUSE_SDL=2
-    # RelWithDebInfo build flags, enable separate dwarf
-    # to reduce wasm size
+    -pthread
+    -sPTHREAD_POOL_SIZE=1
+    # RelWithDebInfo build flags, enable separate dwarf to reduce wasm size
     $<$<CONFIG:RELWITHDEBINFO>:-gseparate-dwarf=${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.dwarf>
     $<$<CONFIG:RELWITHDEBINFO>:-g>
     $<$<CONFIG:RELWITHDEBINFO>:-O2>
@@ -57,9 +60,13 @@ if(EMSCRIPTEN)
   set(WEB_OUT_DIR ${PROJECT_SOURCE_DIR}/web/src/cpp)
 
   add_custom_command(
-    DEPENDS wgpu_app
+    DEPENDS wgpu_app ${PROJECT_SOURCE_DIR}/dev/patch_worker_import.sh
     OUTPUT ${WEB_OUT_DIR}/wgpu_app.js ${WEB_OUT_DIR}/wgpu_app.wasm
     COMMAND cmake -E make_directory ${WEB_OUT_DIR}
+    # Apply patch to the worker import line emscripten generates to work with
+    # webpack
+    COMMAND ${PROJECT_SOURCE_DIR}/dev/patch_worker_import.sh
+            ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.js wgpu_app.js
     COMMAND cmake -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.js
             ${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.wasm ${WEB_OUT_DIR})
 
