@@ -317,24 +317,6 @@ int main(int argc, const char **argv)
     SDL_Quit();
 #endif
 
-    std::thread test_thread([&]() { x = 10; });
-    // Note: in a real app, would not join a thread like this on the main thread,
-    // should detach the thread and likely let it just run as a persistent worker thread
-    // or just do joins on other threads. But we do it here to make sure
-    // that we should see the changed value of x on the main thread now to test
-    // shared memory.
-    test_thread.join();
-    std::cout << "X = " << x << "\n";
-
-    std::thread test2([]() {
-        while (true) {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            std::cout << "hi\n";
-            ++x;
-        }
-    });
-    test2.detach();
-
     return 0;
 }
 
@@ -384,7 +366,6 @@ void app_loop(void *_app_state)
             upload_buf.GetMappedRange(), glm::value_ptr(proj_view), 16 * sizeof(float));
         upload_buf.Unmap();
     }
-    std::cout << "x = " << x << "\n";
 
     wgpu::SurfaceTexture surface_texture;
     app_state->surface.GetCurrentTexture(&surface_texture);
@@ -430,4 +411,34 @@ void app_loop(void *_app_state)
     app_state->surface.Present();
 #endif
     app_state->camera_changed = false;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void dispatch_callback(void (*cb)(int), int arg)
+{
+    std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << "\n";
+    std::cout << "cb = " << cb << ", arg = " << arg << "\n";
+    cb(arg);
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void callback_on_thread(void (*cb)(int))
+{
+    std::thread test2([cb]() {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::cout << "hi on thread, x = " << x << "\n";
+        // This actually fails with the callback not even registered in the table on the
+        // thread!
+        // cb(x);
+        // We need to dispatch back to the main thread, then call back into C++ to dispatch to
+        // the function pointer
+        MAIN_THREAD_EM_ASM(
+            {
+                console.log('Now in dispatch on main thread, cb = ', $0);
+                console.log('x = ', $1);
+                ccall('dispatch_callback', null, ['number', 'number'], [$0, $1]);
+            },
+            cb,
+            x);
+    });
+    test2.detach();
+    x = 20;
 }

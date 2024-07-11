@@ -20,6 +20,7 @@ if(EMSCRIPTEN)
     -sEXPORT_NAME=WGPUApp
     -sUSE_WEBGPU=1
     -sALLOW_MEMORY_GROWTH=1
+    -sALLOW_TABLE_GROWTH=1
     -sINVOKE_RUN=0
     -sUSE_SDL=2
     -pthread
@@ -33,7 +34,7 @@ if(EMSCRIPTEN)
     $<$<CONFIG:DEBUG>:-g>
     $<$<CONFIG:DEBUG>:-O0>
     # Exported Emscripten runtime methods
-    "SHELL:-sEXPORTED_RUNTIME_METHODS='[\"callMain\"]'")
+    "SHELL:-sEXPORTED_RUNTIME_METHODS='[\"callMain\",\"addFunction\",\"cwrap\",\"ccall\"]'")
 
   option(ENABLE_MEMORY_PROFILER "Enable Emscripten's memory profiler" OFF)
   if(ENABLE_MEMORY_PROFILER)

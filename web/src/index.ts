@@ -47,6 +47,24 @@ function sharedArrayBufferSupport() {
     canvas,
   });
 
+  let callback_on_thread = app.cwrap("callback_on_thread", null, ["number"]);
+
+  let some_obj = {
+    x: 10,
+    y: 5,
+  };
+  const callback_fn = (x: number) => {
+    console.log(`Callback fn x = ${x}`);
+    console.log("some_obj in callback: ", some_obj);
+  };
+
+  const callback_fn_addr = app.addFunction(callback_fn, "vi");
+  console.log("some_obj before calling into C++: ", some_obj);
+  callback_on_thread(callback_fn_addr);
+
+  some_obj.x = 100;
+  some_obj.y = 50;
+
   try {
     app.callMain();
   } catch (e) {
