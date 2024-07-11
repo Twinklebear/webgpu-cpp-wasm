@@ -413,21 +413,30 @@ void app_loop(void *_app_state)
     app_state->camera_changed = false;
 }
 
-extern "C" EMSCRIPTEN_KEEPALIVE void dispatch_callback(void (*cb)(int), int arg)
+#ifdef EMSCRIPTEN
+#define EXPORT_FN EMSCRIPTEN_KEEPALIVE
+#else
+#define EXPORT_FN
+#endif
+
+extern "C" EXPORT_FN void dispatch_callback(void (*cb)(int), int arg)
 {
     std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << "\n";
     std::cout << "cb = " << cb << ", arg = " << arg << "\n";
     cb(arg);
 }
 
-extern "C" EMSCRIPTEN_KEEPALIVE void callback_on_thread(void (*cb)(int))
+extern "C" EXPORT_FN void callback_on_thread(void (*cb)(int))
 {
+    std::cout << "hi on main before thread, x = " << x << "\n";
     std::thread test2([cb]() {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         std::cout << "hi on thread, x = " << x << "\n";
         // This actually fails with the callback not even registered in the table on the
         // thread!
-        // cb(x);
+#ifndef EMSCRIPTEN
+        cb(x);
+#else
         // We need to dispatch back to the main thread, then call back into C++ to dispatch to
         // the function pointer
         MAIN_THREAD_EM_ASM(
@@ -438,6 +447,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE void callback_on_thread(void (*cb)(int))
             },
             cb,
             x);
+#endif
     });
     test2.detach();
     x = 20;
