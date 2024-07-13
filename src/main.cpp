@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <thread>
 #include <SDL.h>
+#include <pthread.h>
 #include "arcball_camera.h"
 #include "sdl2webgpu.h"
 #include <glm/ext.hpp>
@@ -12,6 +13,7 @@
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 #include <emscripten/html5_webgpu.h>
+#include <emscripten/proxying.h>
 #endif
 
 #include <webgpu/webgpu_cpp.h>
@@ -116,6 +118,12 @@ wgpu::Device request_device(wgpu::Adapter &adapter, const wgpu::DeviceDescriptor
 }
 #endif
 
+#ifdef EMSCRIPTEN
+emscripten::ProxyingQueue proxying_queue;
+#endif
+
+pthread_t main_thread;
+
 int main(int argc, const char **argv)
 {
     AppState *app_state = new AppState;
@@ -124,6 +132,10 @@ int main(int argc, const char **argv)
         std::cerr << "Failed to init SDL: " << SDL_GetError() << "\n";
         return -1;
     }
+
+    main_thread = pthread_self();
+
+    std::cout << "Main thread ID = " << std::this_thread::get_id() << "\n";
 
     SDL_Window *window = SDL_CreateWindow("SDL2 + WebGPU",
                                           SDL_WINDOWPOS_UNDEFINED,
@@ -429,7 +441,7 @@ extern "C" EXPORT_FN void dispatch_callback(void (*cb)(int), int arg)
 extern "C" EXPORT_FN void callback_on_thread(void (*cb)(int))
 {
     std::cout << "hi on main before thread, x = " << x << "\n";
-    std::thread test2([cb]() {
+    std::thread test2([=]() {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         std::cout << "hi on thread, x = " << x << "\n";
         // This actually fails with the callback not even registered in the table on the
@@ -437,6 +449,13 @@ extern "C" EXPORT_FN void callback_on_thread(void (*cb)(int))
 #ifndef EMSCRIPTEN
         cb(x);
 #else
+        std::cout << "Running callback in thread ID " << std::this_thread::get_id() << "\n";
+        proxying_queue.proxySync(main_thread, [=]() {
+            std::cout << "Now in proxy queue proxy sync dispatch on main thread, thread ID = "
+                      << std::this_thread::get_id() << "\n";
+            cb(x);
+        });
+        /*
         // We need to dispatch back to the main thread, then call back into C++ to dispatch to
         // the function pointer
         MAIN_THREAD_EM_ASM(
@@ -447,6 +466,7 @@ extern "C" EXPORT_FN void callback_on_thread(void (*cb)(int))
             },
             cb,
             x);
+            */
 #endif
     });
     test2.detach();
