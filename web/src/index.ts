@@ -58,16 +58,16 @@ function sharedArrayBufferSupport() {
     console.log("some_obj in callback: ", some_obj);
   };
 
+  try {
+    app.callMain();
+  } catch (e) {
+    console.error(e.stack);
+  }
+
   const callback_fn_addr = app.addFunction(callback_fn, "vi");
   console.log("some_obj before calling into C++: ", some_obj);
   callback_on_thread(callback_fn_addr);
 
   some_obj.x = 100;
   some_obj.y = 50;
-
-  try {
-    app.callMain();
-  } catch (e) {
-    console.error(e.stack);
-  }
 })();
