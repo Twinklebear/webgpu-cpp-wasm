@@ -118,12 +118,6 @@ wgpu::Device request_device(wgpu::Adapter &adapter, const wgpu::DeviceDescriptor
 }
 #endif
 
-#ifdef EMSCRIPTEN
-emscripten::ProxyingQueue proxying_queue;
-#endif
-
-pthread_t main_thread;
-
 int main(int argc, const char **argv)
 {
     AppState *app_state = new AppState;
@@ -132,8 +126,6 @@ int main(int argc, const char **argv)
         std::cerr << "Failed to init SDL: " << SDL_GetError() << "\n";
         return -1;
     }
-
-    main_thread = pthread_self();
 
     std::cout << "Main thread ID = " << std::this_thread::get_id() << "\n";
 
@@ -440,6 +432,8 @@ extern "C" EXPORT_FN void dispatch_callback(void (*cb)(int), int arg)
 
 extern "C" EXPORT_FN void callback_on_thread(void (*cb)(int))
 {
+    pthread_t main_thread = pthread_self();
+
     std::cout << "hi on main before thread, x = " << x << "\n";
     std::thread test2([=]() {
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -449,6 +443,7 @@ extern "C" EXPORT_FN void callback_on_thread(void (*cb)(int))
 #ifndef EMSCRIPTEN
         cb(x);
 #else
+        emscripten::ProxyingQueue proxying_queue;
         std::cout << "Running callback in thread ID " << std::this_thread::get_id() << "\n";
         proxying_queue.proxySync(main_thread, [=]() {
             std::cout << "Now in proxy queue proxy sync dispatch on main thread, thread ID = "
