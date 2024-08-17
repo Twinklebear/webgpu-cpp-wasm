@@ -5,7 +5,7 @@ add_executable(wgpu_app main.cpp arcball_camera.cpp)
 set_target_properties(wgpu_app PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED
                                                           ON)
 
-target_link_libraries(wgpu_app PRIVATE glm embedded_files sdl2webgpu)
+target_link_libraries(wgpu_app PRIVATE glm embedded_files sdl2webgpu tbb)
 
 target_compile_options(wgpu_app PRIVATE -pthread)
 
@@ -24,8 +24,9 @@ if(EMSCRIPTEN)
     -sINVOKE_RUN=0
     -sUSE_SDL=2
     -pthread
-    -sPTHREAD_POOL_SIZE=1
-    # RelWithDebInfo build flags, enable separate dwarf to reduce wasm size
+    -sPTHREAD_POOL_SIZE=8
+    # -sPTHREAD_POOL_SIZE=navigator.hardwareConcurrency RelWithDebInfo build
+    # flags, enable separate dwarf to reduce wasm size
     $<$<CONFIG:RELWITHDEBINFO>:-gseparate-dwarf=${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.dwarf>
     $<$<CONFIG:RELWITHDEBINFO>:-g>
     $<$<CONFIG:RELWITHDEBINFO>:-O2>
@@ -34,7 +35,8 @@ if(EMSCRIPTEN)
     $<$<CONFIG:DEBUG>:-g>
     $<$<CONFIG:DEBUG>:-O0>
     # Exported Emscripten runtime methods
-    "SHELL:-sEXPORTED_RUNTIME_METHODS='[\"callMain\",\"addFunction\",\"cwrap\",\"ccall\"]'")
+    "SHELL:-sEXPORTED_RUNTIME_METHODS='[\"callMain\",\"addFunction\",\"cwrap\",\"ccall\"]'"
+  )
 
   option(ENABLE_MEMORY_PROFILER "Enable Emscripten's memory profiler" OFF)
   if(ENABLE_MEMORY_PROFILER)

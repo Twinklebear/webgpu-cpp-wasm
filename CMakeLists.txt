@@ -18,6 +18,7 @@ if(NOT EMSCRIPTEN)
 endif()
 
 include(cmake/FetchSDL2WebGPU.cmake)
+include(cmake/tbb.cmake)
 
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 

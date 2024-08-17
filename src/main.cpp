@@ -9,6 +9,8 @@
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 
+#include <tbb/tbb.h>
+
 #ifdef EMSCRIPTEN
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
@@ -312,6 +314,26 @@ int main(int argc, const char **argv)
     app_state->camera = ArcballCamera(glm::vec3(0, 0, -2.5), glm::vec3(0), glm::vec3(0, 1, 0));
 
 #ifdef EMSCRIPTEN
+
+    tbb::global_control global_limit(tbb::global_control::max_allowed_parallelism, 8);
+
+    const int num_threads = tbb::global_control::active_value(
+        oneapi::tbb::global_control::max_allowed_parallelism);
+    std::atomic<int> barrier{num_threads};
+    tbb::parallel_for(
+        0,
+        num_threads,
+        [&barrier](int) {
+            barrier--;
+            while (barrier > 0) {
+                // Send browser thread to event loop
+                std::this_thread::yield();
+            }
+        },
+        tbb::static_partitioner{});
+#endif
+
+#ifdef EMSCRIPTEN
     emscripten_set_main_loop_arg(app_loop, app_state, -1, 0);
 #else
     while (!app_state->done) {
@@ -324,8 +346,52 @@ int main(int argc, const char **argv)
     return 0;
 }
 
+int n_tests = 25;
+
 void app_loop(void *_app_state)
 {
+#ifdef EMSCRIPTEN
+    if (n_tests > 0) {
+        --n_tests;
+
+        const int num_threads = tbb::global_control::active_value(
+            oneapi::tbb::global_control::max_allowed_parallelism);
+
+        // Generate some random values to sort
+        const size_t n_values = 1000000;
+        std::vector<uint32_t> values;
+        values.reserve(n_values);
+        std::mt19937 rng;
+        rng.seed(0);
+        std::uniform_int_distribution<uint32_t> distrib(1, 10000);
+        for (size_t i = 0; i < n_values; ++i) {
+            values.push_back(distrib(rng));
+        }
+        using namespace std::chrono;
+        {
+            auto start = steady_clock::now();
+            tbb::parallel_sort(values);
+            auto end = steady_clock::now();
+            std::cout << "Sorting " << values.size() << " values on " << num_threads
+                      << " threads took " << duration_cast<milliseconds>(end - start).count()
+                      << "ms\n";
+        }
+
+        // Regenerate a bunch of random values to sort serially
+        rng.seed(0);
+        for (size_t i = 0; i < values.size(); ++i) {
+            values[i] = distrib(rng);
+        }
+        {
+            auto start = steady_clock::now();
+            std::sort(values.begin(), values.end());
+            auto end = steady_clock::now();
+            std::cout << "Sorting " << values.size() << " values with std::sort took "
+                      << duration_cast<milliseconds>(end - start).count() << "ms\n";
+        }
+    }
+#endif
+
     AppState *app_state = reinterpret_cast<AppState *>(_app_state);
 
     SDL_Event event;
