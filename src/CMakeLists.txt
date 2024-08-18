@@ -31,7 +31,7 @@ if(EMSCRIPTEN)
     $<$<CONFIG:RELWITHDEBINFO>:-g>
     $<$<CONFIG:RELWITHDEBINFO>:-O2>
     # Debug build flags
-    $<$<CONFIG:DEBUG>:-fwasm-exceptions>
+    #$<$<CONFIG:DEBUG>:-fwasm-exceptions>
     $<$<CONFIG:DEBUG>:-g>
     $<$<CONFIG:DEBUG>:-O0>
     # Exported Emscripten runtime methods
