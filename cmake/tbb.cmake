@@ -9,7 +9,6 @@ ExternalProject_Add(
   CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
              -DCMAKE_CROSSCOMPILING_EMULATOR=${CMAKE_CROSSCOMPILING_EMULATOR}
              -DTBB_STRICT=OFF
-             -DCMAKE_CXX_FLAGS=-Wno-unused-command-line-argument
              -DBUILD_SHARED_LIBS=ON
              -DTBB_EXAMPLES=OFF
              -DTBB_TEST=OFF
