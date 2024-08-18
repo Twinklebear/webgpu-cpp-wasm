@@ -43,6 +43,8 @@ struct AppState {
     glm::vec2 prev_mouse = glm::vec2(-2.f);
 };
 
+const int testing_n_threads = 8;
+
 uint32_t win_width = 1280;
 uint32_t win_height = 720;
 int x = 0;
@@ -314,8 +316,8 @@ int main(int argc, const char **argv)
     app_state->camera = ArcballCamera(glm::vec3(0, 0, -2.5), glm::vec3(0), glm::vec3(0, 1, 0));
 
 #ifdef EMSCRIPTEN
-
-    tbb::global_control global_limit(tbb::global_control::max_allowed_parallelism, 8);
+    tbb::global_control global_limit(tbb::global_control::max_allowed_parallelism,
+                                     testing_n_threads);
 
     const int num_threads = tbb::global_control::active_value(
         oneapi::tbb::global_control::max_allowed_parallelism);
@@ -346,19 +348,15 @@ int main(int argc, const char **argv)
     return 0;
 }
 
-int n_tests = 25;
+int n_tests = 5;
 
 void app_loop(void *_app_state)
 {
-#ifdef EMSCRIPTEN
     if (n_tests > 0) {
         --n_tests;
 
-        const int num_threads = tbb::global_control::active_value(
-            oneapi::tbb::global_control::max_allowed_parallelism);
-
         // Generate some random values to sort
-        const size_t n_values = 1000000;
+        const size_t n_values = 2000000;
         std::vector<uint32_t> values;
         values.reserve(n_values);
         std::mt19937 rng;
@@ -369,12 +367,23 @@ void app_loop(void *_app_state)
         }
         using namespace std::chrono;
         {
+            tbb::global_control global_limit(tbb::global_control::max_allowed_parallelism,
+                                             testing_n_threads);
+            const int num_threads = tbb::global_control::active_value(
+                oneapi::tbb::global_control::max_allowed_parallelism);
+
             auto start = steady_clock::now();
             tbb::parallel_sort(values);
             auto end = steady_clock::now();
             std::cout << "Sorting " << values.size() << " values on " << num_threads
                       << " threads took " << duration_cast<milliseconds>(end - start).count()
                       << "ms\n";
+
+            if (!std::is_sorted(values.begin(), values.end())) {
+                std::cerr << "Array is not sorted!\n";
+            } else {
+                std::cout << "Array sorted properly\n";
+            }
         }
 
         // Regenerate a bunch of random values to sort serially
@@ -383,14 +392,23 @@ void app_loop(void *_app_state)
             values[i] = distrib(rng);
         }
         {
+            tbb::global_control global_limit(tbb::global_control::max_allowed_parallelism, 1);
+            const int num_threads = tbb::global_control::active_value(
+                oneapi::tbb::global_control::max_allowed_parallelism);
+
             auto start = steady_clock::now();
-            std::sort(values.begin(), values.end());
+            tbb::parallel_sort(values);
             auto end = steady_clock::now();
-            std::cout << "Sorting " << values.size() << " values with std::sort took "
-                      << duration_cast<milliseconds>(end - start).count() << "ms\n";
+            std::cout << "Sorting " << values.size() << " values on " << num_threads
+                      << " threads took " << duration_cast<milliseconds>(end - start).count()
+                      << "ms\n";
+            if (!std::is_sorted(values.begin(), values.end())) {
+                std::cerr << "Array is not sorted!\n";
+            } else {
+                std::cout << "Array sorted properly\n";
+            }
         }
     }
-#endif
 
     AppState *app_state = reinterpret_cast<AppState *>(_app_state);
 

@@ -24,9 +24,9 @@ if(EMSCRIPTEN)
     -sINVOKE_RUN=0
     -sUSE_SDL=2
     -pthread
+    # -sPTHREAD_POOL_SIZE=navigator.hardwareConcurrency
     -sPTHREAD_POOL_SIZE=8
-    # -sPTHREAD_POOL_SIZE=navigator.hardwareConcurrency RelWithDebInfo build
-    # flags, enable separate dwarf to reduce wasm size
+    # RelWithDebInfo build flags, enable separate dwarf to reduce wasm size
     $<$<CONFIG:RELWITHDEBINFO>:-gseparate-dwarf=${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.dwarf>
     $<$<CONFIG:RELWITHDEBINFO>:-g>
     $<$<CONFIG:RELWITHDEBINFO>:-O2>
