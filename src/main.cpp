@@ -508,7 +508,6 @@ void app_loop(void *_app_state)
 
 extern "C" EXPORT_FN void dispatch_callback(void (*cb)(int), int arg)
 {
-    std::cout << __PRETTY_FUNCTION__ << ":" << __LINE__ << "\n";
     std::cout << "cb = " << cb << ", arg = " << arg << "\n";
     cb(arg);
 }
