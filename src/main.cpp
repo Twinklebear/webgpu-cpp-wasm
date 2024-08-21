@@ -3,7 +3,6 @@
 #include <stdexcept>
 #include <thread>
 #include <SDL.h>
-#include <pthread.h>
 #include "arcball_camera.h"
 #include "sdl2webgpu.h"
 #include <glm/ext.hpp>
@@ -516,7 +515,9 @@ extern "C" EXPORT_FN void dispatch_callback(void (*cb)(int), int arg)
 
 extern "C" EXPORT_FN void callback_on_thread(void (*cb)(int))
 {
+#ifdef EMSCRIPTEN
     pthread_t main_thread = pthread_self();
+#endif
 
     std::cout << "hi on main before thread, x = " << x << "\n";
     std::thread test2([=]() {

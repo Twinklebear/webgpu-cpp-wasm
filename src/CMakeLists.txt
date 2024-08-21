@@ -7,10 +7,8 @@ set_target_properties(wgpu_app PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED
 
 target_link_libraries(wgpu_app PRIVATE glm embedded_files sdl2webgpu tbb)
 
-target_compile_options(wgpu_app PRIVATE -pthread)
-
 if(EMSCRIPTEN)
-  target_compile_options(wgpu_app PRIVATE --use-port=sdl2)
+  target_compile_options(wgpu_app PRIVATE --use-port=sdl2 -pthread)
 
   target_link_options(
     wgpu_app
@@ -30,8 +28,7 @@ if(EMSCRIPTEN)
     $<$<CONFIG:RELWITHDEBINFO>:-gseparate-dwarf=${CMAKE_CURRENT_BINARY_DIR}/wgpu_app.dwarf>
     $<$<CONFIG:RELWITHDEBINFO>:-g>
     $<$<CONFIG:RELWITHDEBINFO>:-O2>
-    # Debug build flags
-    #$<$<CONFIG:DEBUG>:-fwasm-exceptions>
+    # Debug build flags $<$<CONFIG:DEBUG>:-fwasm-exceptions>
     $<$<CONFIG:DEBUG>:-g>
     $<$<CONFIG:DEBUG>:-O0>
     # Exported Emscripten runtime methods
@@ -78,8 +75,9 @@ if(EMSCRIPTEN)
     DEPENDS ${WEB_OUT_DIR}/wgpu_app.js ${WEB_OUT_DIR}/wgpu_app.wasm
     COMMENT "Copying wasm build to ${WEB_OUT_DIR}")
 else()
+  find_package(Threads REQUIRED)
   if(WIN32)
     target_compile_definitions(wgpu_app PUBLIC SDL_MAIN_HANDLED)
   endif()
-  target_link_libraries(wgpu_app PUBLIC SDL2::SDL2 webgpu)
+  target_link_libraries(wgpu_app PUBLIC SDL2::SDL2 webgpu Threads::Threads)
 endif()
