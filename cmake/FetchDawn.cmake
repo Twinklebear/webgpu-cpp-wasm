@@ -1,67 +1,65 @@
-# Elie Michel's Dawn Fetch/Build CMake script
+# Based on Elie Michel's Dawn Fetch/Build CMake script
 # https://github.com/eliemichel/WebGPU-distribution/blob/main/dawn/FetchDawnSource.cmake
+
 # Prevent multiple includes
 if(TARGET dawn_native)
   return()
 endif()
 
+# Override Dawn default cache variables with a more minimalistic choice
+# of backend and the fetch script instead of depot_tools.
+option(DAWN_FETCH_DEPENDENCIES "Use fetch_dawn_dependencies.py as an alternative to using depot_tools" ON)
+
+if(APPLE)
+  set(ENABLE_VULKAN OFF)
+  set(ENABLE_METAL ON)
+  set(ENABLE_D3D12 OFF)
+elseif(WIN32)
+  set(ENABLE_VULKAN OFF)
+  set(ENABLE_METAL OFF)
+  set(ENABLE_D3D12 ON)
+else()
+  set(ENABLE_VULKAN ON)
+  set(ENABLE_METAL OFF)
+  set(ENABLE_D3D12 OFF)
+endif()
+option(DAWN_ENABLE_D3D11 "Enable compilation of the D3D11 backend" OFF)
+option(DAWN_ENABLE_D3D12 "Enable compilation of the D3D12 backend" ${ENABLE_D3D12})
+option(DAWN_ENABLE_METAL "Enable compilation of the Metal backend" ${ENABLE_METAL})
+option(DAWN_ENABLE_NULL "Enable compilation of the Null backend" OFF)
+option(DAWN_ENABLE_DESKTOP_GL "Enable compilation of the OpenGL backend" OFF)
+option(DAWN_ENABLE_OPENGLES "Enable compilation of the OpenGL ES backend" OFF)
+option(DAWN_ENABLE_VULKAN "Enable compilation of the Vulkan backend" ${ENABLE_VULKAN})
+option(TINT_BUILD_SPV_READER "Build the SPIR-V input reader" OFF)
+option(DAWN_BUILD_SAMPLES "Enables building Dawn's samples" OFF)
+option(DAWN_BUILD_TESTS "Enables building Dawn's tests" OFF)
+option(TINT_BUILD_CMD_TOOLS "Build the Tint command line tools" OFF)
+option(TINT_BUILD_IR_BINARY "Build IR binary format support" OFF)
+option(DAWN_USE_GLFW "Use GLFW" OFF)
+
 include(FetchContent)
 find_package(Python3 REQUIRED)
+
+set(DAWN_VERSION "7187" CACHE STRING "Dawn chromium version")
+set(DAWN_MIRROR "https://dawn.googlesource.com/dawn" CACHE STRING "Dawn git mirror")
 
 FetchContent_Declare(
   dawn
   # Manual download mode, even shallower than GIT_SHALLOW ON
   DOWNLOAD_COMMAND
-    cd ${FETCHCONTENT_BASE_DIR}/dawn-src && git init && git fetch --depth=1
-    https://dawn.googlesource.com/dawn chromium/7187 && git reset --hard
-    FETCH_HEAD)
+    cd ${FETCHCONTENT_BASE_DIR}/dawn-src &&
+    git init &&
+    git fetch --depth=1 ${DAWN_MIRROR} chromium/${DAWN_VERSION} &&
+    git reset --hard FETCH_HEAD)
 
-FetchContent_GetProperties(dawn)
-if(NOT dawn_POPULATED)
-  FetchContent_Populate(dawn)
-
-  # This option replaces depot_tools
-  set(DAWN_FETCH_DEPENDENCIES ON)
-
-  # A more minimalistic choice of backend than Dawn's default
-  if(APPLE)
-    set(USE_VULKAN OFF)
-    set(USE_METAL ON)
-    set(USE_D3D12 OFF)
-  elseif(WIN32)
-    set(USE_VULKAN OFF)
-    set(USE_METAL OFF)
-    set(USE_D3D12 ON)
-  else()
-    set(USE_VULKAN ON)
-    set(USE_METAL OFF)
-    set(USE_D3D12 OFF)
-  endif()
-  set(DAWN_ENABLE_D3D11 OFF)
-  set(DAWN_ENABLE_D3D12 ${USE_D3D12})
-  set(DAWN_ENABLE_METAL ${USE_METAL})
-  set(DAWN_ENABLE_NULL OFF)
-  set(DAWN_ENABLE_DESKTOP_GL OFF)
-  set(DAWN_ENABLE_OPENGLES OFF)
-  set(DAWN_ENABLE_VULKAN ${USE_VULKAN})
-  set(TINT_BUILD_SPV_READER OFF)
-
-  # Disable unneeded parts
-  set(DAWN_BUILD_SAMPLES OFF)
-  set(DAWN_BUILD_TESTS OFF)
-  set(TINT_BUILD_CMD_TOOLS OFF)
-  set(TINT_BUILD_IR_BINARY OFF)
-  set(DAWN_USE_GLFW OFF)
-
-  # GCC 14+ errors on template-id in destructor declarations in Dawn code
-  include(CheckCXXCompilerFlag)
-  check_cxx_compiler_flag(-Wno-template-id-cdtor HAS_WNO_TEMPLATE_ID_CDTOR)
-  if(HAS_WNO_TEMPLATE_ID_CDTOR)
-    add_compile_options(-Wno-template-id-cdtor)
-  endif()
-
-  add_subdirectory(${dawn_SOURCE_DIR} ${dawn_BINARY_DIR})
+# GCC 14+ errors on template-id in destructor declarations in Dawn code
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-Wno-template-id-cdtor HAS_WNO_TEMPLATE_ID_CDTOR)
+if(HAS_WNO_TEMPLATE_ID_CDTOR)
+  add_compile_options(-Wno-template-id-cdtor)
 endif()
+
+FetchContent_MakeAvailable(dawn)
 
 set(AllDawnTargets
     core_tables
@@ -167,4 +165,4 @@ endforeach()
 add_library(webgpu INTERFACE)
 target_link_libraries(webgpu INTERFACE webgpu_dawn)
 target_include_directories(webgpu
-                           INTERFACE ${CMAKE_BINARY_DIR}/_deps/dawn-src/include)
+                           INTERFACE ${dawn_SOURCE_DIR}/include)
