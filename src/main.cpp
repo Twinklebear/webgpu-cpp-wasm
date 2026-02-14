@@ -1,6 +1,7 @@
 #include <array>
 #include <iostream>
 #include <stdexcept>
+#include <string_view>
 #include <SDL.h>
 #include "arcball_camera.h"
 #include "sdl2webgpu.h"
@@ -49,68 +50,57 @@ glm::vec2 transform_mouse(glm::vec2 in)
 void app_loop(void *_app_state);
 
 #ifndef __EMSCRIPTEN__
-// TODO: move to another file
 wgpu::Adapter request_adapter(wgpu::Instance &instance,
                               const wgpu::RequestAdapterOptions &options)
 {
-    struct Result {
-        WGPUAdapter adapter = nullptr;
-        bool success = false;
-    };
-
-    Result result;
+    wgpu::Adapter result;
+    bool got_result = false;
     instance.RequestAdapter(
         &options,
-        [](WGPURequestAdapterStatus status,
-           WGPUAdapter adapter,
-           const char *msg,
-           void *user_data) {
-            Result *res = reinterpret_cast<Result *>(user_data);
-            if (status == WGPURequestAdapterStatus_Success) {
-                res->adapter = adapter;
-                res->success = true;
+        wgpu::CallbackMode::AllowSpontaneous,
+        [&](wgpu::RequestAdapterStatus status,
+            wgpu::Adapter adapter,
+            wgpu::StringView msg) {
+            if (status == wgpu::RequestAdapterStatus::Success) {
+                result = std::move(adapter);
+                got_result = true;
             } else {
-                std::cerr << "Failed to get WebGPU adapter: " << msg << std::endl;
+                std::cerr << "Failed to get WebGPU adapter: "
+                          << std::string_view(msg.data, msg.length) << std::endl;
             }
-        },
-        &result);
+        });
 
-    if (!result.success) {
+    if (!got_result) {
         throw std::runtime_error("Failed to get WebGPU adapter");
     }
 
-    return wgpu::Adapter::Acquire(result.adapter);
+    return result;
 }
 
-wgpu::Device request_device(wgpu::Adapter &adapter, const wgpu::DeviceDescriptor &options)
+wgpu::Device request_device(wgpu::Adapter &adapter, wgpu::DeviceDescriptor &options)
 {
-    struct Result {
-        WGPUDevice device = nullptr;
-        bool success = false;
-    };
-
-    Result result;
+    wgpu::Device result;
+    bool got_result = false;
     adapter.RequestDevice(
         &options,
-        [](WGPURequestDeviceStatus status,
-           WGPUDevice device,
-           const char *msg,
-           void *user_data) {
-            Result *res = reinterpret_cast<Result *>(user_data);
-            if (status == WGPURequestDeviceStatus_Success) {
-                res->device = device;
-                res->success = true;
+        wgpu::CallbackMode::AllowSpontaneous,
+        [&](wgpu::RequestDeviceStatus status,
+            wgpu::Device device,
+            wgpu::StringView msg) {
+            if (status == wgpu::RequestDeviceStatus::Success) {
+                result = std::move(device);
+                got_result = true;
             } else {
-                std::cerr << "Failed to get WebGPU device: " << msg << std::endl;
+                std::cerr << "Failed to get WebGPU device: "
+                          << std::string_view(msg.data, msg.length) << std::endl;
             }
-        },
-        &result);
+        });
 
-    if (!result.success) {
+    if (!got_result) {
         throw std::runtime_error("Failed to get WebGPU device");
     }
 
-    return wgpu::Device::Acquire(result.device);
+    return result;
 }
 #endif
 
@@ -134,10 +124,18 @@ int main(int argc, const char **argv)
     app_state->surface =
         wgpu::Surface::Acquire(sdl2GetWGPUSurface(app_state->instance.Get(), window));
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
     // The adapter/device request has already been done for us in the TypeScript code
     // when running in Emscripten
     app_state->device = wgpu::Device::Acquire(emscripten_webgpu_get_device());
+
+    app_state->device.SetUncapturedErrorCallback(
+        [](WGPUErrorType type, const char *msg, void *) {
+            std::cout << "WebGPU Error: " << msg << "\n" << std::flush;
+            emscripten_cancel_main_loop();
+            emscripten_force_exit(1);
+        },
+        nullptr);
 #else
     wgpu::RequestAdapterOptions adapter_options = {};
     adapter_options.compatibleSurface = app_state->surface;
@@ -145,19 +143,14 @@ int main(int argc, const char **argv)
     app_state->adapter = request_adapter(app_state->instance, adapter_options);
 
     wgpu::DeviceDescriptor device_options = {};
+    device_options.SetUncapturedErrorCallback(
+        [](const wgpu::Device &, wgpu::ErrorType type, wgpu::StringView msg) {
+            std::cout << "WebGPU Error: " << std::string_view(msg.data, msg.length) << "\n"
+                      << std::flush;
+            std::exit(1);
+        });
     app_state->device = request_device(app_state->adapter, device_options);
 #endif
-
-    app_state->device.SetUncapturedErrorCallback(
-        [](WGPUErrorType type, const char *msg, void *data) {
-            std::cout << "WebGPU Error: " << msg << "\n" << std::flush;
-#ifdef EMSCRIPTEN
-            emscripten_cancel_main_loop();
-            emscripten_force_exit(1);
-#endif
-            std::exit(1);
-        },
-        nullptr);
 
     app_state->queue = app_state->device.GetQueue();
 
@@ -178,6 +171,7 @@ int main(int argc, const char **argv)
         shader_module_desc.nextInChain = &shader_module_wgsl;
         shader_module = app_state->device.CreateShaderModule(&shader_module_desc);
 
+#ifdef __EMSCRIPTEN__
         shader_module.GetCompilationInfo(
             [](WGPUCompilationInfoRequestStatus status,
                WGPUCompilationInfo const *info,
@@ -200,12 +194,42 @@ int main(int argc, const char **argv)
                         default:
                             break;
                         }
-
                         std::cout << ": " << m.message << "\n";
                     }
                 }
             },
             nullptr);
+#else
+        shader_module.GetCompilationInfo(
+            wgpu::CallbackMode::AllowSpontaneous,
+            [](wgpu::CompilationInfoRequestStatus status,
+               wgpu::CompilationInfo const *info) {
+                if (info->messageCount != 0) {
+                    std::cout << "Shader compilation info:\n";
+                    for (uint32_t i = 0; i < info->messageCount; ++i) {
+                        const auto &m = info->messages[i];
+                        std::cout << m.lineNum << ":" << m.linePos << ": ";
+                        switch (m.type) {
+                        case wgpu::CompilationMessageType::Error:
+                            std::cout << "error";
+                            break;
+                        case wgpu::CompilationMessageType::Warning:
+                            std::cout << "warning";
+                            break;
+                        case wgpu::CompilationMessageType::Info:
+                            std::cout << "info";
+                            break;
+                        default:
+                            break;
+                        }
+
+                        std::cout << ": "
+                                  << std::string_view(m.message.data, m.message.length)
+                                  << "\n";
+                    }
+                }
+            });
+#endif
     }
 
     // Upload vertex data
