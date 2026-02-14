@@ -53,6 +53,13 @@ if(NOT dawn_POPULATED)
   set(TINT_BUILD_IR_BINARY OFF)
   set(DAWN_USE_GLFW OFF)
 
+  # GCC 14+ errors on template-id in destructor declarations in Dawn code
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag(-Wno-template-id-cdtor HAS_WNO_TEMPLATE_ID_CDTOR)
+  if(HAS_WNO_TEMPLATE_ID_CDTOR)
+    add_compile_options(-Wno-template-id-cdtor)
+  endif()
+
   add_subdirectory(${dawn_SOURCE_DIR} ${dawn_BINARY_DIR})
 endif()
 
