@@ -1,19 +1,19 @@
 # Elie Michel's Dawn Fetch/Build CMake script
-# https://github.com/eliemichel/WebGPU-distribution/blob/dawn-6429/cmake/FetchDawn.cmake
+# https://github.com/eliemichel/WebGPU-distribution/blob/main/dawn/FetchDawnSource.cmake
 # Prevent multiple includes
 if(TARGET dawn_native)
   return()
 endif()
 
 include(FetchContent)
+find_package(Python3 REQUIRED)
 
 FetchContent_Declare(
   dawn
-  # GIT_REPOSITORY https://dawn.googlesource.com/dawn GIT_TAG chromium/6429
-  # GIT_SHALLOW ON Manual download mode, even shallower than GIT_SHALLOW ON
+  # Manual download mode, even shallower than GIT_SHALLOW ON
   DOWNLOAD_COMMAND
     cd ${FETCHCONTENT_BASE_DIR}/dawn-src && git init && git fetch --depth=1
-    https://dawn.googlesource.com/dawn chromium/6478 && git reset --hard
+    https://dawn.googlesource.com/dawn chromium/7187 && git reset --hard
     FETCH_HEAD)
 
 FetchContent_GetProperties(dawn)
@@ -23,7 +23,7 @@ if(NOT dawn_POPULATED)
   # This option replaces depot_tools
   set(DAWN_FETCH_DEPENDENCIES ON)
 
-  # A more minimalistic choice of backand than Dawn's default
+  # A more minimalistic choice of backend than Dawn's default
   if(APPLE)
     set(USE_VULKAN OFF)
     set(USE_METAL ON)
@@ -44,27 +44,14 @@ if(NOT dawn_POPULATED)
   set(DAWN_ENABLE_DESKTOP_GL OFF)
   set(DAWN_ENABLE_OPENGLES OFF)
   set(DAWN_ENABLE_VULKAN ${USE_VULKAN})
-  set(DAWN_ENABLE_PIC ON)
   set(TINT_BUILD_SPV_READER OFF)
 
   # Disable unneeded parts
   set(DAWN_BUILD_SAMPLES OFF)
+  set(DAWN_BUILD_TESTS OFF)
   set(TINT_BUILD_CMD_TOOLS OFF)
+  set(TINT_BUILD_IR_BINARY OFF)
   set(DAWN_USE_GLFW OFF)
-  set(TINT_BUILD_TINT OFF)
-  set(TINT_BUILD_SAMPLES OFF)
-  set(TINT_BUILD_DOCS OFF)
-  set(TINT_BUILD_TESTS OFF)
-  set(TINT_BUILD_FUZZERS OFF)
-  set(TINT_BUILD_SPIRV_TOOLS_FUZZER OFF)
-  set(TINT_BUILD_AST_FUZZER OFF)
-  set(TINT_BUILD_REGEX_FUZZER OFF)
-  set(TINT_BUILD_BENCHMARKS OFF)
-  set(TINT_BUILD_TESTS OFF)
-  set(TINT_BUILD_AS_OTHER_OS OFF)
-  set(TINT_BUILD_REMOTE_COMPILE OFF)
-  set(TINT_BUILD_GLSL_WRITER OFF)
-  set(TINT_BUILD_GLSL_VALIDATOR OFF)
 
   add_subdirectory(${dawn_SOURCE_DIR} ${dawn_BINARY_DIR})
 endif()
@@ -77,41 +64,46 @@ set(AllDawnTargets
     dawn_native
     dawn_platform
     dawn_proc
-    dawn_utils
     dawn_wire
+    dawn_native_objects
+    dawn_shared_utils
+    partition_alloc
     dawncpp
     dawncpp_headers
-    emscripten_bits_gen
     enum_string_mapping
     extinst_tables
     webgpu_dawn
     webgpu_headers_gen
+    tint-format
+    tint-lint
     tint_api
     tint_api_common
-    tint_api_options
     tint_cmd_common
-    tint_cmd_info_cmd
-    tint_cmd_loopy_cmd
-    tint_cmd_remote_compile_cmd
-    tint_cmd_tint_cmd
     tint_lang_core
+    tint_lang_core_common
     tint_lang_core_constant
     tint_lang_core_intrinsic
     tint_lang_core_ir
+    tint_lang_core_ir_analysis
     tint_lang_core_ir_transform
+    tint_lang_core_ir_transform_common
+    tint_lang_core_ir_type
     tint_lang_core_type
     tint_lang_glsl_validate
-    tint_lang_glsl_writer_raise
     tint_lang_hlsl_writer_common
-    tint_lang_msl_writer_raise
+    tint_lang_hlsl_writer_helpers
+    tint_lang_hlsl_writer_printer
+    tint_lang_hlsl_writer_raise
+    tint_lang_msl
+    tint_lang_msl_intrinsic
+    tint_lang_msl_ir
     tint_lang_spirv
     tint_lang_spirv_intrinsic
     tint_lang_spirv_ir
-    tint_lang_spirv_reader_common
+    tint_lang_spirv_reader_lower
     tint_lang_spirv_type
+    tint_lang_spirv_validate
     tint_lang_spirv_writer
-    tint_lang_spirv_writer_ast_printer
-    tint_lang_spirv_writer_ast_raise
     tint_lang_spirv_writer_common
     tint_lang_spirv_writer_helpers
     tint_lang_spirv_writer_printer
@@ -119,6 +111,8 @@ set(AllDawnTargets
     tint_lang_wgsl
     tint_lang_wgsl_ast
     tint_lang_wgsl_ast_transform
+    tint_lang_wgsl_common
+    tint_lang_wgsl_features
     tint_lang_wgsl_helpers
     tint_lang_wgsl_inspector
     tint_lang_wgsl_intrinsic
@@ -135,31 +129,33 @@ set(AllDawnTargets
     tint_lang_wgsl_writer_ir_to_program
     tint_lang_wgsl_writer_raise
     tint_lang_wgsl_writer_syntax_tree_printer
-    tint_utils_cli
+    tint_utils
+    tint_utils_bytes
     tint_utils_command
     tint_utils_containers
-    tint_utils_debug
     tint_utils_diagnostic
     tint_utils_file
-    tint_utils_generator
     tint_utils_ice
-    tint_utils_id
     tint_utils_macros
     tint_utils_math
     tint_utils_memory
-    tint_utils_reflection
-    tint_utils_result
     tint_utils_rtti
-    tint_utils_socket
     tint_utils_strconv
     tint_utils_symbol
+    tint_utils_system
     tint_utils_text
-    tint_utils_traits
-    tint-format
-    tint-lint)
+    tint_utils_text_generator)
 
-target_include_directories(dawn_utils
-                           PUBLIC ${CMAKE_BINARY_DIR}/_deps/dawn-src/src)
+foreach(Target ${AllDawnTargets})
+  if(TARGET ${Target})
+    get_property(AliasedTarget TARGET "${Target}" PROPERTY ALIASED_TARGET)
+    if("${AliasedTarget}" STREQUAL "")
+      set_property(TARGET ${Target} PROPERTY FOLDER "Dawn")
+    endif()
+  else()
+    message(STATUS "NB: '${Target}' is no longer a target of the Dawn project.")
+  endif()
+endforeach()
 
 add_library(webgpu INTERFACE)
 target_link_libraries(webgpu INTERFACE webgpu_dawn)
