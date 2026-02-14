@@ -12,15 +12,15 @@
     "author": "Will Usher <will@willusher.io>",
     "license": "MIT",
     "devDependencies": {
-        "copy-webpack-plugin": "^11.0.0",
-        "html-webpack-plugin": "^5.5.3",
-        "ts-loader": "^9.5.1",
-        "typescript": "^5.3.2",
-        "webpack": "^5.89.0",
-        "webpack-cli": "^5.1.4",
-        "webpack-dev-server": "^4.15.1"
+        "copy-webpack-plugin": "^13.0.1",
+        "html-webpack-plugin": "^5.6.6",
+        "ts-loader": "^9.5.4",
+        "typescript": "^5.9.3",
+        "webpack": "^5.105.2",
+        "webpack-cli": "^6.0.1",
+        "webpack-dev-server": "^5.2.3"
     },
     "dependencies": {
-        "@webgpu/types": "^0.1.40"
+        "@webgpu/types": "^0.1.69"
     }
 }
