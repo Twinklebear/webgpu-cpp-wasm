@@ -6,3 +6,7 @@ FetchContent_Declare(
   GIT_TAG main)
 
 FetchContent_MakeAvailable(sdl2webgpu)
+
+if(EMSCRIPTEN)
+  target_compile_options(sdl2webgpu PUBLIC --use-port=emdawnwebgpu)
+endif()
