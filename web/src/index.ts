@@ -42,7 +42,7 @@ function sharedArrayBufferSupport() {
   // making it hard to debug
   let app = await WGPUApp({
     canvas,
-  });
+  }) as { callMain(args?: string[]): void };
 
   try {
     app.callMain();
