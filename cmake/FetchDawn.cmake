@@ -40,7 +40,7 @@ option(DAWN_USE_GLFW "Use GLFW" OFF)
 include(FetchContent)
 find_package(Python3 REQUIRED)
 
-set(DAWN_VERSION "7187" CACHE STRING "Dawn chromium version")
+set(DAWN_VERSION "7688" CACHE STRING "Dawn chromium version")
 set(DAWN_MIRROR "https://dawn.googlesource.com/dawn" CACHE STRING "Dawn git mirror")
 
 FetchContent_Declare(
@@ -50,12 +50,7 @@ FetchContent_Declare(
     cd ${FETCHCONTENT_BASE_DIR}/dawn-src &&
     git init &&
     git fetch --depth=1 ${DAWN_MIRROR} chromium/${DAWN_VERSION} &&
-    git reset --hard FETCH_HEAD
-
-  # Fix GCC 13+ compatibility issues in Dawn source
-  PATCH_COMMAND
-    ${CMAKE_COMMAND} -DSOURCE_DIR=<SOURCE_DIR>
-    -P "${CMAKE_CURRENT_LIST_DIR}/patch_dawn_gcc.cmake")
+    git reset --hard FETCH_HEAD)
 
 FetchContent_MakeAvailable(dawn)
 
