@@ -50,14 +50,12 @@ FetchContent_Declare(
     cd ${FETCHCONTENT_BASE_DIR}/dawn-src &&
     git init &&
     git fetch --depth=1 ${DAWN_MIRROR} chromium/${DAWN_VERSION} &&
-    git reset --hard FETCH_HEAD)
+    git reset --hard FETCH_HEAD
 
-# GCC 14+ errors on template-id in destructor declarations in Dawn code
-include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag(-Wno-template-id-cdtor HAS_WNO_TEMPLATE_ID_CDTOR)
-if(HAS_WNO_TEMPLATE_ID_CDTOR)
-  add_compile_options(-Wno-template-id-cdtor)
-endif()
+  # Fix GCC 13+ compatibility issues in Dawn source
+  PATCH_COMMAND
+    ${CMAKE_COMMAND} -DSOURCE_DIR=<SOURCE_DIR>
+    -P "${CMAKE_CURRENT_LIST_DIR}/patch_dawn_gcc.cmake")
 
 FetchContent_MakeAvailable(dawn)
 
