@@ -1,6 +1,9 @@
 name: Build Native Apps
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 jobs:
   ubuntu-native:

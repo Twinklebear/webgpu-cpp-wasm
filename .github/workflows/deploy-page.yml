@@ -2,6 +2,7 @@ name: Build and Deploy Web App
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
