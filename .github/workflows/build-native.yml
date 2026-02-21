@@ -1,4 +1,5 @@
 name: Build Native Apps
+# Dawn deps are cached via actions/cache to speed up builds
 
 on:
   push:
