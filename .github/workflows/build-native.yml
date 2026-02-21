@@ -16,9 +16,16 @@ jobs:
           sudo apt update --fix-missing
           sudo apt install -y libsdl2-dev libx11-xcb-dev python3
 
+      - name: Cache Dawn dependencies
+        uses: actions/cache@v4
+        with:
+          path: cmake-build/_deps
+          key: dawn-deps-ubuntu-${{ hashFiles('cmake/FetchDawn.cmake') }}
+          restore-keys: dawn-deps-ubuntu-
+
       - name: Make build directory
         working-directory: ${{ github.workspace }}
-        run: mkdir cmake-build
+        run: mkdir -p cmake-build
 
       - name: Configure
         working-directory: ${{ github.workspace }}/cmake-build
@@ -35,6 +42,13 @@ jobs:
 
       - name: Install Dependencies
         run: vcpkg install sdl2:x64-windows
+
+      - name: Cache Dawn dependencies
+        uses: actions/cache@v4
+        with:
+          path: cmake-build/_deps
+          key: dawn-deps-windows-${{ hashFiles('cmake/FetchDawn.cmake') }}
+          restore-keys: dawn-deps-windows-
 
       - name: Make build directory
         working-directory: ${{ github.workspace }}
@@ -59,9 +73,16 @@ jobs:
       - name: Install Dependencies
         run: brew install sdl2
 
+      - name: Cache Dawn dependencies
+        uses: actions/cache@v4
+        with:
+          path: cmake-build/_deps
+          key: dawn-deps-macos-${{ hashFiles('cmake/FetchDawn.cmake') }}
+          restore-keys: dawn-deps-macos-
+
       - name: Make build directory
         working-directory: ${{ github.workspace }}
-        run: mkdir cmake-build
+        run: mkdir -p cmake-build
 
       - name: Configure
         working-directory: ${{ github.workspace }}/cmake-build
