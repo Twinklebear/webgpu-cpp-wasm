@@ -18,6 +18,7 @@
 #include "embedded_files.h"
 
 struct AppState {
+    SDL_Window *window = nullptr;
     wgpu::Instance instance;
     wgpu::Adapter adapter;
     wgpu::Device device;
@@ -40,7 +41,6 @@ struct AppState {
 
 uint32_t win_width = 1280;
 uint32_t win_height = 720;
-SDL_Window *g_window = nullptr;
 
 glm::vec2 transform_mouse(glm::vec2 in)
 {
@@ -66,7 +66,8 @@ void init_rendering(AppState *app_state)
     wgpu::ShaderModule shader_module;
     {
         wgpu::ShaderSourceWGSL shader_module_wgsl;
-        shader_module_wgsl.code = reinterpret_cast<const char *>(triangle_wgsl);
+        shader_module_wgsl.code.data = reinterpret_cast<const char *>(triangle_wgsl);
+        shader_module_wgsl.code.length = triangle_wgsl_size;
 
         wgpu::ShaderModuleDescriptor shader_module_desc;
         shader_module_desc.nextInChain = &shader_module_wgsl;
@@ -74,8 +75,7 @@ void init_rendering(AppState *app_state)
 
         shader_module.GetCompilationInfo(
             wgpu::CallbackMode::AllowSpontaneous,
-            [](wgpu::CompilationInfoRequestStatus status,
-               wgpu::CompilationInfo const *info) {
+            [](wgpu::CompilationInfoRequestStatus status, wgpu::CompilationInfo const *info) {
                 if (info->messageCount != 0) {
                     std::cout << "Shader compilation info:\n";
                     for (uint32_t i = 0; i < info->messageCount; ++i) {
@@ -94,8 +94,7 @@ void init_rendering(AppState *app_state)
                         default:
                             break;
                         }
-                        std::cout << ": "
-                                  << std::string_view(m.message.data, m.message.length)
+                        std::cout << ": " << std::string_view(m.message.data, m.message.length)
                                   << "\n";
                     }
                 }
@@ -205,7 +204,7 @@ void init_rendering(AppState *app_state)
     while (!app_state->done) {
         app_loop(app_state);
     }
-    SDL_DestroyWindow(g_window);
+    SDL_DestroyWindow(app_state->window);
     SDL_Quit();
 #endif
 }
@@ -219,16 +218,16 @@ int main(int argc, const char **argv)
         return -1;
     }
 
-    g_window = SDL_CreateWindow("SDL2 + WebGPU",
-                                SDL_WINDOWPOS_UNDEFINED,
-                                SDL_WINDOWPOS_UNDEFINED,
-                                win_width,
-                                win_height,
-                                0);
+    app_state->window = SDL_CreateWindow("SDL2 + WebGPU",
+                                         SDL_WINDOWPOS_UNDEFINED,
+                                         SDL_WINDOWPOS_UNDEFINED,
+                                         win_width,
+                                         win_height,
+                                         0);
 
     app_state->instance = wgpu::CreateInstance();
-    app_state->surface =
-        wgpu::Surface::Acquire(sdl2GetWGPUSurface(app_state->instance.Get(), g_window));
+    app_state->surface = wgpu::Surface::Acquire(
+        sdl2GetWGPUSurface(app_state->instance.Get(), app_state->window));
 
     wgpu::RequestAdapterOptions adapter_options = {};
     adapter_options.compatibleSurface = app_state->surface;
@@ -237,9 +236,8 @@ int main(int argc, const char **argv)
     app_state->instance.RequestAdapter(
         &adapter_options,
         wgpu::CallbackMode::AllowSpontaneous,
-        [app_state](wgpu::RequestAdapterStatus status,
-                    wgpu::Adapter adapter,
-                    wgpu::StringView msg) {
+        [app_state](
+            wgpu::RequestAdapterStatus status, wgpu::Adapter adapter, wgpu::StringView msg) {
             if (status != wgpu::RequestAdapterStatus::Success) {
                 std::cerr << "Failed to get WebGPU adapter: "
                           << std::string_view(msg.data, msg.length) << std::endl;
@@ -250,8 +248,8 @@ int main(int argc, const char **argv)
             wgpu::DeviceDescriptor device_options = {};
             device_options.SetUncapturedErrorCallback(
                 [](const wgpu::Device &, wgpu::ErrorType type, wgpu::StringView msg) {
-                    std::cout << "WebGPU Error: "
-                              << std::string_view(msg.data, msg.length) << "\n"
+                    std::cout << "WebGPU Error: " << std::string_view(msg.data, msg.length)
+                              << "\n"
                               << std::flush;
                     std::exit(1);
                 });
