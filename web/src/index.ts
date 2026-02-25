@@ -37,17 +37,12 @@ function sharedArrayBufferSupport() {
     evt.preventDefault();
   });
 
-  // Get a GPU device to render with
-  let adapter = await navigator.gpu.requestAdapter();
-  let device = await adapter.requestDevice();
-
   // We set -sINVOKE_RUN=0 when building and call main ourselves because something
   // within the promise -> call directly chain was gobbling exceptions
   // making it hard to debug
   let app = await WGPUApp({
-    preinitializedWebGPUDevice: device,
     canvas,
-  });
+  }) as { callMain(args?: string[]): void };
 
   try {
     app.callMain();

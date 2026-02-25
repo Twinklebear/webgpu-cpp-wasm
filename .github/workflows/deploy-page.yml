@@ -2,8 +2,8 @@ name: Build and Deploy Web App
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
 
 jobs:
   build-web:
@@ -19,8 +19,8 @@ jobs:
         run: |
           git clone https://github.com/emscripten-core/emsdk.git
           cd emsdk
-          ./emsdk install 3.1.61
-          ./emsdk activate 3.1.61
+          ./emsdk install 5.0.1
+          ./emsdk activate 5.0.1
 
       - name: Configure
         run: |
@@ -43,11 +43,13 @@ jobs:
           npm run build
 
       - name: Upload Web App Dist
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ github.workspace }}/web/dist
 
   deploy-web:
+    if: github.ref == 'refs/heads/main'
     needs: build-web
 
     permissions:

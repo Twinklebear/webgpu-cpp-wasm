@@ -1,16 +1,16 @@
 #include <array>
 #include <iostream>
 #include <stdexcept>
+#include <string_view>
 #include <SDL.h>
 #include "arcball_camera.h"
 #include "sdl2webgpu.h"
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
-#include <emscripten/html5_webgpu.h>
 #endif
 
 #include <webgpu/webgpu_cpp.h>
@@ -18,6 +18,7 @@
 #include "embedded_files.h"
 
 struct AppState {
+    SDL_Window *window = nullptr;
     wgpu::Instance instance;
     wgpu::Adapter adapter;
     wgpu::Device device;
@@ -48,117 +49,10 @@ glm::vec2 transform_mouse(glm::vec2 in)
 
 void app_loop(void *_app_state);
 
-#ifndef __EMSCRIPTEN__
-// TODO: move to another file
-wgpu::Adapter request_adapter(wgpu::Instance &instance,
-                              const wgpu::RequestAdapterOptions &options)
+// Called after adapter and device have been acquired (asynchronously on
+// Emscripten, synchronously on native Dawn).
+void init_rendering(AppState *app_state)
 {
-    struct Result {
-        WGPUAdapter adapter = nullptr;
-        bool success = false;
-    };
-
-    Result result;
-    instance.RequestAdapter(
-        &options,
-        [](WGPURequestAdapterStatus status,
-           WGPUAdapter adapter,
-           const char *msg,
-           void *user_data) {
-            Result *res = reinterpret_cast<Result *>(user_data);
-            if (status == WGPURequestAdapterStatus_Success) {
-                res->adapter = adapter;
-                res->success = true;
-            } else {
-                std::cerr << "Failed to get WebGPU adapter: " << msg << std::endl;
-            }
-        },
-        &result);
-
-    if (!result.success) {
-        throw std::runtime_error("Failed to get WebGPU adapter");
-    }
-
-    return wgpu::Adapter::Acquire(result.adapter);
-}
-
-wgpu::Device request_device(wgpu::Adapter &adapter, const wgpu::DeviceDescriptor &options)
-{
-    struct Result {
-        WGPUDevice device = nullptr;
-        bool success = false;
-    };
-
-    Result result;
-    adapter.RequestDevice(
-        &options,
-        [](WGPURequestDeviceStatus status,
-           WGPUDevice device,
-           const char *msg,
-           void *user_data) {
-            Result *res = reinterpret_cast<Result *>(user_data);
-            if (status == WGPURequestDeviceStatus_Success) {
-                res->device = device;
-                res->success = true;
-            } else {
-                std::cerr << "Failed to get WebGPU device: " << msg << std::endl;
-            }
-        },
-        &result);
-
-    if (!result.success) {
-        throw std::runtime_error("Failed to get WebGPU device");
-    }
-
-    return wgpu::Device::Acquire(result.device);
-}
-#endif
-
-int main(int argc, const char **argv)
-{
-    AppState *app_state = new AppState;
-
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {
-        std::cerr << "Failed to init SDL: " << SDL_GetError() << "\n";
-        return -1;
-    }
-
-    SDL_Window *window = SDL_CreateWindow("SDL2 + WebGPU",
-                                          SDL_WINDOWPOS_UNDEFINED,
-                                          SDL_WINDOWPOS_UNDEFINED,
-                                          win_width,
-                                          win_height,
-                                          0);
-
-    app_state->instance = wgpu::CreateInstance();
-    app_state->surface =
-        wgpu::Surface::Acquire(sdl2GetWGPUSurface(app_state->instance.Get(), window));
-
-#ifdef EMSCRIPTEN
-    // The adapter/device request has already been done for us in the TypeScript code
-    // when running in Emscripten
-    app_state->device = wgpu::Device::Acquire(emscripten_webgpu_get_device());
-#else
-    wgpu::RequestAdapterOptions adapter_options = {};
-    adapter_options.compatibleSurface = app_state->surface;
-    adapter_options.powerPreference = wgpu::PowerPreference::HighPerformance;
-    app_state->adapter = request_adapter(app_state->instance, adapter_options);
-
-    wgpu::DeviceDescriptor device_options = {};
-    app_state->device = request_device(app_state->adapter, device_options);
-#endif
-
-    app_state->device.SetUncapturedErrorCallback(
-        [](WGPUErrorType type, const char *msg, void *data) {
-            std::cout << "WebGPU Error: " << msg << "\n" << std::flush;
-#ifdef EMSCRIPTEN
-            emscripten_cancel_main_loop();
-            emscripten_force_exit(1);
-#endif
-            std::exit(1);
-        },
-        nullptr);
-
     app_state->queue = app_state->device.GetQueue();
 
     wgpu::SurfaceConfiguration surface_config;
@@ -171,41 +65,40 @@ int main(int argc, const char **argv)
 
     wgpu::ShaderModule shader_module;
     {
-        wgpu::ShaderModuleWGSLDescriptor shader_module_wgsl;
-        shader_module_wgsl.code = reinterpret_cast<const char *>(triangle_wgsl);
+        wgpu::ShaderSourceWGSL shader_module_wgsl;
+        shader_module_wgsl.code.data = reinterpret_cast<const char *>(triangle_wgsl);
+        shader_module_wgsl.code.length = triangle_wgsl_size;
 
         wgpu::ShaderModuleDescriptor shader_module_desc;
         shader_module_desc.nextInChain = &shader_module_wgsl;
         shader_module = app_state->device.CreateShaderModule(&shader_module_desc);
 
         shader_module.GetCompilationInfo(
-            [](WGPUCompilationInfoRequestStatus status,
-               WGPUCompilationInfo const *info,
-               void *) {
+            wgpu::CallbackMode::AllowSpontaneous,
+            [](wgpu::CompilationInfoRequestStatus status, wgpu::CompilationInfo const *info) {
                 if (info->messageCount != 0) {
                     std::cout << "Shader compilation info:\n";
                     for (uint32_t i = 0; i < info->messageCount; ++i) {
                         const auto &m = info->messages[i];
                         std::cout << m.lineNum << ":" << m.linePos << ": ";
                         switch (m.type) {
-                        case WGPUCompilationMessageType_Error:
+                        case wgpu::CompilationMessageType::Error:
                             std::cout << "error";
                             break;
-                        case WGPUCompilationMessageType_Warning:
+                        case wgpu::CompilationMessageType::Warning:
                             std::cout << "warning";
                             break;
-                        case WGPUCompilationMessageType_Info:
+                        case wgpu::CompilationMessageType::Info:
                             std::cout << "info";
                             break;
                         default:
                             break;
                         }
-
-                        std::cout << ": " << m.message << "\n";
+                        std::cout << ": " << std::string_view(m.message.data, m.message.length)
+                                  << "\n";
                     }
                 }
-            },
-            nullptr);
+            });
     }
 
     // Upload vertex data
@@ -305,15 +198,77 @@ int main(int argc, const char **argv)
         glm::radians(50.f), static_cast<float>(win_width) / win_height, 0.1f, 100.f);
     app_state->camera = ArcballCamera(glm::vec3(0, 0, -2.5), glm::vec3(0), glm::vec3(0, 1, 0));
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
     emscripten_set_main_loop_arg(app_loop, app_state, -1, 0);
 #else
     while (!app_state->done) {
         app_loop(app_state);
     }
-    SDL_DestroyWindow(window);
+    SDL_DestroyWindow(app_state->window);
     SDL_Quit();
 #endif
+}
+
+int main(int argc, const char **argv)
+{
+    AppState *app_state = new AppState;
+
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {
+        std::cerr << "Failed to init SDL: " << SDL_GetError() << "\n";
+        return -1;
+    }
+
+    app_state->window = SDL_CreateWindow("SDL2 + WebGPU",
+                                         SDL_WINDOWPOS_UNDEFINED,
+                                         SDL_WINDOWPOS_UNDEFINED,
+                                         win_width,
+                                         win_height,
+                                         0);
+
+    app_state->instance = wgpu::CreateInstance();
+    app_state->surface = wgpu::Surface::Acquire(
+        sdl2GetWGPUSurface(app_state->instance.Get(), app_state->window));
+
+    wgpu::RequestAdapterOptions adapter_options = {};
+    adapter_options.compatibleSurface = app_state->surface;
+    adapter_options.powerPreference = wgpu::PowerPreference::HighPerformance;
+
+    app_state->instance.RequestAdapter(
+        &adapter_options,
+        wgpu::CallbackMode::AllowSpontaneous,
+        [app_state](
+            wgpu::RequestAdapterStatus status, wgpu::Adapter adapter, wgpu::StringView msg) {
+            if (status != wgpu::RequestAdapterStatus::Success) {
+                std::cerr << "Failed to get WebGPU adapter: "
+                          << std::string_view(msg.data, msg.length) << std::endl;
+                return;
+            }
+            app_state->adapter = std::move(adapter);
+
+            wgpu::DeviceDescriptor device_options = {};
+            device_options.SetUncapturedErrorCallback(
+                [](const wgpu::Device &, wgpu::ErrorType type, wgpu::StringView msg) {
+                    std::cout << "WebGPU Error: " << std::string_view(msg.data, msg.length)
+                              << "\n"
+                              << std::flush;
+                    std::exit(1);
+                });
+
+            app_state->adapter.RequestDevice(
+                &device_options,
+                wgpu::CallbackMode::AllowSpontaneous,
+                [app_state](wgpu::RequestDeviceStatus status,
+                            wgpu::Device device,
+                            wgpu::StringView msg) {
+                    if (status != wgpu::RequestDeviceStatus::Success) {
+                        std::cerr << "Failed to get WebGPU device: "
+                                  << std::string_view(msg.data, msg.length) << std::endl;
+                        return;
+                    }
+                    app_state->device = std::move(device);
+                    init_rendering(app_state);
+                });
+        });
 
     return 0;
 }
@@ -338,7 +293,7 @@ void app_loop(void *_app_state)
             }
             app_state->prev_mouse = cur_mouse;
         } else if (event.type == SDL_MOUSEWHEEL) {
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
             // We get wheel values at ~10x smaller values in Emscripten environment,
             // so just apply a scale factor to make it match native scroll
             float wheel_scale = 10.f;

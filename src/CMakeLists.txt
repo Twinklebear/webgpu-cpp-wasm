@@ -8,7 +8,7 @@ set_target_properties(wgpu_app PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED
 target_link_libraries(wgpu_app PRIVATE glm embedded_files sdl2webgpu)
 
 if(EMSCRIPTEN)
-  target_compile_options(wgpu_app PRIVATE --use-port=sdl2)
+  target_compile_options(wgpu_app PRIVATE --use-port=sdl2 --use-port=emdawnwebgpu)
 
   target_link_options(
     wgpu_app
@@ -16,7 +16,7 @@ if(EMSCRIPTEN)
     "SHELL: -sENVIRONMENT='web,worker'"
     -sEXPORT_ES6
     -sEXPORT_NAME=WGPUApp
-    -sUSE_WEBGPU=1
+    --use-port=emdawnwebgpu
     -sALLOW_MEMORY_GROWTH=1
     -sINVOKE_RUN=0
     -sUSE_SDL=2
